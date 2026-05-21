@@ -1,0 +1,6 @@
+@HerreraSystemAPI_HostAddress = http://localhost:5177
+
+GET {{HerreraSystemAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
