@@ -10,8 +10,4 @@
     <ProjectReference Include="..\HerreraSystemDomain\HerreraSystem.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DTOs\LinePresentationDtos\" />
-  </ItemGroup>
-
 </Project>

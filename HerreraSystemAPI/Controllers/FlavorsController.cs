@@ -1,6 +1,6 @@
 ﻿using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.FlavorDtos;
-using HerreraSystem.Application.Interfaces;
+using HerreraSystem.Application.Interfaces.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]

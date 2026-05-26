@@ -4,8 +4,8 @@ using HerreraSystem.Infrastructure.Data;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using HerreraSystem.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using HerreraSystem.Application.Interfaces.Repositories;
 
 namespace HerreraSystem.Infrastructure.Repositories
 {

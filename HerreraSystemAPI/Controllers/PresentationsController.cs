@@ -1,6 +1,6 @@
 ﻿using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.PresentationDtos;
-using HerreraSystem.Application.Interfaces;
+using HerreraSystem.Application.Interfaces.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HerreraSystem.API.Controllers
