@@ -1,6 +1,8 @@
 ﻿using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.LineDtos;
-using HerreraSystem.Application.Interfaces;
+using HerreraSystem.Application.DTOs.PresentationDtos;
+using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HerreraSystem.API.Controllers
@@ -11,10 +13,13 @@ namespace HerreraSystem.API.Controllers
         public class LinesController : ControllerBase
         {
         private readonly ILineRepository _lineRepository;
+        private readonly ILinePresentationRepository _linePresentationRepository;
 
         public LinesController(ILineRepository lineRepository)
         {
             _lineRepository = lineRepository;
+            _linePresentationRepository = new LinePresentationRepository(new HerreraSystem.Infrastructure.Data.HerreraSystemContext());
+
         }
 
         [HttpGet]
@@ -62,6 +67,19 @@ namespace HerreraSystem.API.Controllers
 
             return Ok(ApiResponse<object>.Ok(null!, "Línea eliminada exitosamente"));
         }
+
+
+        [HttpGet("{lineId}/presentations")]
+        public async Task<IActionResult> GetPresentations(int lineId)
+        {
+            var data = await _linePresentationRepository
+                .GetPresentationsByLineAsync(lineId);
+
+            return Ok(ApiResponse<List<PresentationDto>>
+                .Ok(data));
+        }
+
+
     }
 
 

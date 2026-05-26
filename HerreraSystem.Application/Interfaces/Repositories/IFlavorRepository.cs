@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace HerreraSystem.Application.Interfaces
+namespace HerreraSystem.Application.Interfaces.Repositories
 {
     public interface IFlavorRepository
     {
