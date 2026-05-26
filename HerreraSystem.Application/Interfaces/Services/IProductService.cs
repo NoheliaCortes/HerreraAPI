@@ -1,0 +1,19 @@
+﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.DTOs.ProductDtos;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace HerreraSystem.Application.Interfaces.Services
+{
+    public interface IProductService
+    {
+        Task<List<ProductDto>> GetAllAsync();
+        Task<ServiceResult<ProductDto>> GetByIdAsync(int id);
+        Task<List<ProductCatalogDto>> GetCatalogAsync(int? lineId, int? flavorId, string? search, bool? active);
+        Task<ServiceResult<ProductDto>> CreateAsync(CreateProductDto dto);
+        Task<ServiceResult<bool>> PatchAsync(int id, PatchProductDto dto);
+        Task<ServiceResult<bool>> DeleteAsync(int id);
+
+    }
+}

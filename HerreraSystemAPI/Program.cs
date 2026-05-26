@@ -1,6 +1,8 @@
 using HerreraSystem.API.Middleware;
 using HerreraSystem.Application.Common;
-using HerreraSystem.Application.Interfaces;
+using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Interfaces.Services;
+using HerreraSystem.Application.Services;
 using HerreraSystem.Infrastructure.Data;
 using HerreraSystem.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +46,20 @@ builder.Services.AddScoped<IFlavorRepository, FlavorRepository>();
 builder.Services.AddScoped<ILineRepository, LineRepository>();
 
 builder.Services.AddScoped<IPresentationRepository, PresentationRepository>();
+
+builder.Services.AddScoped<ILinePresentationRepository, LinePresentationRepository>();
+
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductService, ProductService>();
+
+
+builder.Services.AddScoped<IGeneralPriceRepository, GeneralPriceRepository>();
+builder.Services.AddScoped<IGeneralPriceService, GeneralPriceService>();
+
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+
+
 
 var app = builder.Build();
 
