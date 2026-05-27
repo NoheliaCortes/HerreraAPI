@@ -53,12 +53,12 @@ namespace HerreraSystem.Infrastructure.Repositories
 
                     DisplayStock = p.Batches
                         .SelectMany(b => b.BatchLocations)
-                        .Where(bl => bl.LocationId == 1)
+                        .Where(bl => bl.LocationId == 2)
                         .Sum(bl => (int?)bl.CurrentStock) ?? 0,
 
                     WarehouseStock = p.Batches
                         .SelectMany(b => b.BatchLocations)
-                        .Where(bl => bl.LocationId == 2)
+                        .Where(bl => bl.LocationId == 1)
                         .Sum(bl => (int?)bl.CurrentStock) ?? 0,
 
                     ReservedStock = p.Batches

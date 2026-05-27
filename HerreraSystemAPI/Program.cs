@@ -4,6 +4,7 @@ using HerreraSystem.Application.Interfaces.Repositories;
 using HerreraSystem.Application.Interfaces.Services;
 using HerreraSystem.Application.Services;
 using HerreraSystem.Infrastructure.Data;
+using HerreraSystem.Infrastructure.Persistence;
 using HerreraSystem.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -58,6 +59,21 @@ builder.Services.AddScoped<IGeneralPriceService, GeneralPriceService>();
 
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
+
+// Repositories
+builder.Services.AddScoped<IRestockRepository, RestockRepository>();
+builder.Services.AddScoped<IRestockService, RestockService>();
+
+builder.Services.AddScoped<IBatchRepository, BatchRepository>();
+
+builder.Services.AddScoped<IBatchLocationRepository, BatchLocationRepository>();
+
+builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
+
+builder.Services.AddScoped<IMovementDetailRepository, MovementDetailRepository>();
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 
 
 
