@@ -10,5 +10,7 @@ namespace HerreraSystem.Application.Interfaces.Repositories
         Task<Batch> CreateAsync(Batch batch);
         Task<int> CountByYearAsync(int year);
         Task<string> BuildBatchCodeAsync(int productId, int year, int correlative);
+
+        Task<Batch?> GetByIdAsync(int id);
     }
 }

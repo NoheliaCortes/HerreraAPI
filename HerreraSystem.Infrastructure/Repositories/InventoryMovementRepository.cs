@@ -1,10 +1,11 @@
-﻿using HerreraSystem.Domain.Entities;
+﻿using HerreraSystem.Application.DTOs.InventoryMovementDtos;
+using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Domain.Entities;
 using HerreraSystem.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
-using HerreraSystem.Application.Interfaces.Repositories;
 
 namespace HerreraSystem.Infrastructure.Repositories
 {
@@ -23,5 +24,8 @@ namespace HerreraSystem.Infrastructure.Repositories
             await _context.SaveChangesAsync();
             return movement;
         }
+
+       
+        
     }
 }

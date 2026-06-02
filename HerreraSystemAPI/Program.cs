@@ -74,8 +74,14 @@ builder.Services.AddScoped<IMovementDetailRepository, MovementDetailRepository>(
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+builder.Services.AddScoped<ISaleDetailRepository, SaleDetailRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IProductPriceRepository, ProductPriceRepository>();
+builder.Services.AddScoped<IRetailSaleService, RetailSaleService>();
 
-
+builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
+builder.Services.AddScoped<IInventoryMovementService, InventoryMovementService>();
 
 var app = builder.Build();
 
