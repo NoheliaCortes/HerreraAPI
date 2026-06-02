@@ -9,5 +9,7 @@ namespace HerreraSystem.Application.Common
         Task BeginTransactionAsync();
         Task CommitAsync();
         Task RollbackAsync();
+
+        Task SaveChangesAsync();
     }
 }

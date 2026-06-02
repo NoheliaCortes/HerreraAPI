@@ -19,21 +19,34 @@ namespace HerreraSystem.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+        [FromQuery] PaginationParams paginationParams)
         {
-            var data = await _productService.GetAllAsync();
-            return Ok(ApiResponse<List<ProductDto>>.Ok(data));
+            var data = await _productService
+                .GetAllAsync(paginationParams);
+
+            return Ok(
+                ApiResponse<PagedResponse<ProductDto>>.Ok(data));
         }
 
         [HttpGet("catalog")]
         public async Task<IActionResult> GetCatalog(
-            [FromQuery] int? lineId,
-            [FromQuery] int? flavorId,
-            [FromQuery] string? search,
-            [FromQuery] bool? active)
+    [FromQuery] int? lineId,
+    [FromQuery] int? flavorId,
+    [FromQuery] string? search,
+    [FromQuery] bool? active,
+    [FromQuery] PaginationParams paginationParams)
         {
-            var data = await _productService.GetCatalogAsync(lineId, flavorId, search, active);
-            return Ok(ApiResponse<List<ProductCatalogDto>>.Ok(data));
+            var data = await _productService.GetCatalogAsync(
+                lineId,
+                flavorId,
+                search,
+                active,
+                paginationParams);
+
+            return Ok(
+                ApiResponse<PagedResponse<ProductCatalogDto>>
+                    .Ok(data));
         }
 
         [HttpGet("{id}")]

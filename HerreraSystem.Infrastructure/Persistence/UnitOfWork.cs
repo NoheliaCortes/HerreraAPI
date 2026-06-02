@@ -37,5 +37,10 @@ namespace HerreraSystem.Infrastructure.Persistence
             if (_transaction is not null)
                 await _transaction.DisposeAsync();
         }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }
