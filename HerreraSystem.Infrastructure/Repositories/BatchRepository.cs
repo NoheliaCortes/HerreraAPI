@@ -56,5 +56,8 @@ namespace HerreraSystem.Infrastructure.Repositories
 
         private static string Truncate(string value, int maxLength) =>
             value.Length <= maxLength ? value : value[..maxLength];
+
+        public async Task<Batch?> GetByIdAsync(int id)
+    => await _context.Batches.FindAsync(id);
     }
 }

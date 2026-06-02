@@ -5,8 +5,9 @@ using System.Text;
 
 namespace HerreraSystem.Application.Interfaces.Repositories
 {
-    public interface IMovementDetailRepository
+    public interface ISaleRepository
     {
-        Task<MovementDetail> CreateAsync(MovementDetail detail);
+        Task<Sale> CreateAsync(Sale sale);
+        Task<int> CountByYearAsync(int year);
     }
 }

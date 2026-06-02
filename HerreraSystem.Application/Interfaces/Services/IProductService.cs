@@ -8,9 +8,16 @@ namespace HerreraSystem.Application.Interfaces.Services
 {
     public interface IProductService
     {
-        Task<List<ProductDto>> GetAllAsync();
+        Task<PagedResponse<ProductDto>> GetAllAsync(
+        PaginationParams paginationParams);
+
         Task<ServiceResult<ProductDto>> GetByIdAsync(int id);
-        Task<List<ProductCatalogDto>> GetCatalogAsync(int? lineId, int? flavorId, string? search, bool? active);
+        Task<PagedResponse<ProductCatalogDto>> GetCatalogAsync(
+        int? lineId,
+        int? flavorId,
+        string? search,
+        bool? active,
+        PaginationParams paginationParams);
         Task<ServiceResult<ProductDto>> CreateAsync(CreateProductDto dto);
         Task<ServiceResult<bool>> PatchAsync(int id, PatchProductDto dto);
         Task<ServiceResult<bool>> DeleteAsync(int id);

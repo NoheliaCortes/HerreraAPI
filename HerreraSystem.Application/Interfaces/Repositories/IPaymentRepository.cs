@@ -5,8 +5,8 @@ using System.Text;
 
 namespace HerreraSystem.Application.Interfaces.Repositories
 {
-    public interface IMovementDetailRepository
+    public interface IPaymentRepository
     {
-        Task<MovementDetail> CreateAsync(MovementDetail detail);
+        Task CreateAsync(Payment payment);
     }
 }

@@ -26,9 +26,12 @@ namespace HerreraSystem.Application.Services
 
         // ── Consultas ────────────────────────────────────────────────────────
 
-        public async Task<List<ProductDto>> GetAllAsync()
-            => await _productRepository.GetAllAsync();
-
+        public async Task<PagedResponse<ProductDto>> GetAllAsync(
+        PaginationParams paginationParams)
+        {
+            return await _productRepository
+                .GetAllAsync(paginationParams);
+        }
         public async Task<ServiceResult<ProductDto>> GetByIdAsync(int id)
         {
             var product = await _productRepository.GetByIdAsync(id);
@@ -38,9 +41,20 @@ namespace HerreraSystem.Application.Services
             return ServiceResult<ProductDto>.Ok(product);
         }
 
-        public async Task<List<ProductCatalogDto>> GetCatalogAsync(
-            int? lineId, int? flavorId, string? search, bool? active)
-            => await _productRepository.GetCatalogAsync(lineId, flavorId, search, active);
+        public async Task<PagedResponse<ProductCatalogDto>> GetCatalogAsync(
+        int? lineId,
+        int? flavorId,
+        string? search,
+        bool? active,
+        PaginationParams paginationParams)
+        {
+            return await _productRepository.GetCatalogAsync(
+                lineId,
+                flavorId,
+                search,
+                active,
+                paginationParams);
+        }
 
         // ── Operaciones con lógica de negocio ────────────────────────────────
 
