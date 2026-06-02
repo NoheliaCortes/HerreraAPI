@@ -3,25 +3,23 @@ using HerreraSystem.Infrastructure.Data;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 using HerreraSystem.Application.Interfaces.Repositories;
 
 namespace HerreraSystem.Infrastructure.Repositories
 {
-    public class MovementDetailRepository : IMovementDetailRepository
+    public class PaymentRepository : IPaymentRepository
     {
         private readonly HerreraSystemContext _context;
 
-        public MovementDetailRepository(HerreraSystemContext context)
+        public PaymentRepository(HerreraSystemContext context)
         {
             _context = context;
         }
 
-        public async Task<MovementDetail> CreateAsync(MovementDetail detail)
+        public async Task CreateAsync(Payment payment)
         {
-            _context.MovementDetails.Add(detail);
+            _context.Payments.Add(payment);
             await _context.SaveChangesAsync();
-            return detail;   // EF ya populó el Id después del SaveChanges
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using HerreraSystem.Application.DTOs.ProductDtos;
+﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.DTOs.ProductDtos;
 using HerreraSystem.Application.Interfaces.Repositories;
 using HerreraSystem.Domain.Entities;
 using HerreraSystem.Infrastructure.Data;
@@ -20,9 +21,12 @@ namespace HerreraSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<List<ProductDto>> GetAllAsync()
+        public async Task<PagedResponse<ProductDto>> GetAllAsync(
+        PaginationParams paginationParams)
         {
-            return await _context.Products
+            var query = _context.Products
+                .AsNoTracking()
+                .OrderBy(p => p.ProductName)
                 .Select(p => new ProductDto
                 {
                     Id = p.Id,
@@ -34,7 +38,9 @@ namespace HerreraSystem.Infrastructure.Repositories
                     CreatedAt = p.CreatedAt,
                     ImageUrl = p.ImageUrl,
                     MinimumStock = p.MinimumStock
-                }).ToListAsync();
+                });
+
+            return await query.ToPagedResponseAsync(paginationParams);
         }
 
         public async Task<ProductDto?> GetByIdAsync(int id)
@@ -119,51 +125,74 @@ namespace HerreraSystem.Infrastructure.Repositories
             return true;
         }
 
-        public async Task<List<ProductCatalogDto>> GetCatalogAsync(
-            int? lineId, int? flavorId, string? search, bool? active)
+        public async Task<PagedResponse<ProductCatalogDto>> GetCatalogAsync(
+        int? lineId,
+        int? flavorId,
+        string? search,
+        bool? active,
+        PaginationParams paginationParams)
         {
-            var query = _context.Products.AsQueryable();
+            var query = _context.Products
+                .AsNoTracking()
+                .AsQueryable();
 
             if (lineId.HasValue)
-                query = query.Where(p => p.LinePresentation.LineId == lineId.Value);
-            if (flavorId.HasValue)
-                query = query.Where(p => p.FlavorId == flavorId.Value);
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(p => p.ProductName.Contains(search));
-            if (active.HasValue)
-                query = query.Where(p => p.IsActive == active.Value);
+                query = query.Where(p =>
+                    p.LinePresentation.LineId == lineId.Value);
 
-            return await query
+            if (flavorId.HasValue)
+                query = query.Where(p =>
+                    p.FlavorId == flavorId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(p =>
+                    p.ProductName.Contains(search));
+
+            if (active.HasValue)
+                query = query.Where(p =>
+                    p.IsActive == active.Value);
+
+            var catalogQuery = query
+                .OrderBy(p => p.ProductName)
                 .Select(p => new ProductCatalogDto
                 {
                     Id = p.Id,
                     ProductName = p.ProductName,
                     ImageUrl = p.ImageUrl,
                     IsActive = p.IsActive,
-                    LineName = p.LinePresentation.Line.LineName,
-                    FlavorName = p.Flavor.FlavorName,
-                    PresentationName = p.LinePresentation.Presentation.PresentationName,
-                    WholesalePrice = _context.ProductPrices
-                    .Where(pp =>
-                        pp.IsActive == true &&
-                        pp.LinePresentationId == p.LinePresentationId &&
-                        pp.PriceTypeId == PriceTypeConstants.Wholesale &&
-                        (pp.ValidTo == null || pp.ValidTo >= DateTime.UtcNow))
-                    .OrderByDescending(pp => pp.ValidFrom)
-                    .Select(pp => (decimal?)pp.Price)
-                    .FirstOrDefault(),
 
-                                    RetailPrice = _context.ProductPrices
-                    .Where(pp =>
-                        pp.IsActive == true &&
-                        pp.LinePresentationId == p.LinePresentationId &&
-                        pp.PriceTypeId == PriceTypeConstants.Retail &&
-                        (pp.ValidTo == null || pp.ValidTo >= DateTime.UtcNow))
-                    .OrderByDescending(pp => pp.ValidFrom)
-                    .Select(pp => (decimal?)pp.Price)
-                    .FirstOrDefault(),
-                })
-                .ToListAsync();
+                    LineName = p.LinePresentation.Line.LineName,
+
+                    FlavorName = p.Flavor.FlavorName,
+
+                    PresentationName = p.LinePresentation
+                        .Presentation.PresentationName,
+
+                    WholesalePrice = _context.ProductPrices
+                        .Where(pp =>
+                            pp.IsActive == true &&
+                            pp.LinePresentationId == p.LinePresentationId &&
+                            pp.PriceTypeId == PriceTypeConstants.Wholesale &&
+                            (pp.ValidTo == null ||
+                             pp.ValidTo >= DateTime.UtcNow))
+                        .OrderByDescending(pp => pp.ValidFrom)
+                        .Select(pp => (decimal?)pp.Price)
+                        .FirstOrDefault(),
+
+                    RetailPrice = _context.ProductPrices
+                        .Where(pp =>
+                            pp.IsActive == true &&
+                            pp.LinePresentationId == p.LinePresentationId &&
+                            pp.PriceTypeId == PriceTypeConstants.Retail &&
+                            (pp.ValidTo == null ||
+                             pp.ValidTo >= DateTime.UtcNow))
+                        .OrderByDescending(pp => pp.ValidFrom)
+                        .Select(pp => (decimal?)pp.Price)
+                        .FirstOrDefault()
+                });
+
+            return await catalogQuery
+                .ToPagedResponseAsync(paginationParams);
         }
 
         public async Task<bool> ExistsAsync(
