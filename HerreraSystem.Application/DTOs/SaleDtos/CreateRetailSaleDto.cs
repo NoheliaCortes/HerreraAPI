@@ -13,7 +13,6 @@ namespace HerreraSystem.Application.DTOs.SaleDtos
         [Required(ErrorMessage = "El método de pago es obligatorio")]
         public int PaymentMethodId { get; set; }
 
-        public decimal AmountReceived { get; set; }
 
         public string? TransactionReference { get; set; }
 

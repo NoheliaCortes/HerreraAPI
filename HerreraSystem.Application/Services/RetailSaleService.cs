@@ -136,7 +136,7 @@ namespace HerreraSystem.Application.Services
                 {
                     SaleId = sale.Id,
                     PaymentMethodId = dto.PaymentMethodId,
-                    AmountReceived = dto.AmountReceived,
+                    AmountReceived = totalSale,
                     PaymentDate = DateTime.UtcNow,
                     TransactionReference = dto.TransactionReference,
                     RegisteredBy = dto.CreatedBy
