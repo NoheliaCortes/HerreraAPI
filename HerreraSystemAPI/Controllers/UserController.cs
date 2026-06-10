@@ -3,9 +3,11 @@ using HerreraSystem.Application.DTOs.Auth;
 using HerreraSystem.Application.DTOs.UserDto;
 using HerreraSystem.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HerreraSystem.API.Controllers;
 
+[Authorize(Roles = "Vendedor")]
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
