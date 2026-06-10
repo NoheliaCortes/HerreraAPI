@@ -6,20 +6,21 @@ using HerreraSystem.Application.Services;
 using HerreraSystem.Infrastructure.Data;
 using HerreraSystem.Infrastructure.Persistence;
 using HerreraSystem.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-
-
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+var Jwt = builder.Configuration.GetSection("Jwt");
+var Key = Jwt["Key"];
 
-// Registra los controllers y configura el formato de error
-// cuando las validaciones de los DTOs fallan (400 Bad Request)
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
         {
-            // Extrae todos los mensajes de error de validación
             var errors = context.ModelState
                 .Where(e => e.Value?.Errors.Count > 0)
                 .SelectMany(e => e.Value!.Errors)
@@ -33,62 +34,78 @@ builder.Services.AddControllers()
         };
     });
 
+builder.Services.AddEndpointsApiExplorer();
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddEndpointsApiExplorer(); 
-builder.Services.AddSwaggerGen();
-//builder.Services.AddOpenApi();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header
+    });
+
+    // Nueva sintaxis para Microsoft.OpenApi 2.x
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecuritySchemeReference("Bearer", document),
+            new List<string>()
+        }
+    });
+});
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = Jwt["Issuer"],
+        ValidateAudience = true,
+        ValidAudience = Jwt["Audience"],
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Key!))
+    };
+});
 
 builder.Services.AddDbContext<HerreraSystemContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IFlavorRepository, FlavorRepository>();
-
 builder.Services.AddScoped<ILineRepository, LineRepository>();
-
 builder.Services.AddScoped<IPresentationRepository, PresentationRepository>();
-
 builder.Services.AddScoped<ILinePresentationRepository, LinePresentationRepository>();
-
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
-
-
 builder.Services.AddScoped<IGeneralPriceRepository, GeneralPriceRepository>();
 builder.Services.AddScoped<IGeneralPriceService, GeneralPriceService>();
-
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
-
-// Repositories
 builder.Services.AddScoped<IRestockRepository, RestockRepository>();
 builder.Services.AddScoped<IRestockService, RestockService>();
-
 builder.Services.AddScoped<IBatchRepository, BatchRepository>();
-
 builder.Services.AddScoped<IBatchLocationRepository, BatchLocationRepository>();
-
 builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
-
 builder.Services.AddScoped<IMovementDetailRepository, MovementDetailRepository>();
-
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
 builder.Services.AddScoped<ISaleRepository, SaleRepository>();
 builder.Services.AddScoped<ISaleDetailRepository, SaleDetailRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IProductPriceRepository, ProductPriceRepository>();
 builder.Services.AddScoped<IRetailSaleService, RetailSaleService>();
-
-builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
 builder.Services.AddScoped<IInventoryMovementService, InventoryMovementService>();
-
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-
 
 builder.Services.AddCors(options =>
 {
@@ -102,27 +119,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Registra el middleware PRIMERO antes que todo
-// para que capture errores de cualquier parte del pipeline
 app.UseMiddleware<ExceptionMiddleware>();
 
-
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseMiddleware<ExceptionMiddleware>();
-
 app.UseHttpsRedirection();
-
 app.UseCors("PermitirFrontend");
 app.UseAuthentication();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
