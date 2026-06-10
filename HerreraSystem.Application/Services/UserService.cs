@@ -11,7 +11,7 @@ namespace HerreraSystem.Application.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepo;
-
+    
     public UserService(IUserRepository userRepo)
     {
         _userRepo = userRepo;
@@ -134,7 +134,7 @@ public class UserService : IUserService
         var user = await _userRepo.GetByUserNameAsync(dto.UserName);
 
         if (user == null)
-            return ServiceResult<string>.Fail("El usuario especificado no existe en el sistema");
+            return ServiceResult<string>.Fail("El usuario no existe en el sistema");
 
         user.ResetToken = Guid.NewGuid().ToString();
         user.ResetTokenExpiry = DateTime.UtcNow.AddHours(1);
