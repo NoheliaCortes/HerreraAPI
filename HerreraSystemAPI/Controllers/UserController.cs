@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace HerreraSystem.API.Controllers;
 
-[Authorize(Roles = "Vendedor")]
+
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
@@ -59,11 +59,18 @@ public class UsersController : ControllerBase
     [HttpPatch("{id}/toggle-status")]
     public async Task<IActionResult> ToggleStatus(int id)
     {
-        var result = await _userService.ToggleStatusAsync(id);
-        if (!result.Success)
-            return BadRequest(ApiResponse<string>.Fail(result.ErrorMessage!));
+        var currentUserIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)
+                              ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
 
-        return Ok(ApiResponse<string>.Ok(result.Data!));
+        if (currentUserIdClaim == null || !int.TryParse(currentUserIdClaim.Value, out int currentUserId))
+            return Unauthorized(new { success = false, message = "Sesión inválida." });
+
+        var result = await _userService.ToggleStatusAsync(id, currentUserId);
+
+        if (!result.Success) 
+            return BadRequest(new { success = false, message = result.ErrorMessage });
+
+        return Ok(new { success = true, data = result.Data });
     }
 
     [HttpPost("forgot-password")]
@@ -76,13 +83,18 @@ public class UsersController : ControllerBase
         return Ok(ApiResponse<string>.Ok(result.Data!));
     }
 
-    [HttpPost("reset-password")]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto dto)
+    [HttpPatch("{id}/reset-password")]
+    [Authorize(Roles = "Administrador, Admin")]
+    public async Task<IActionResult> ResetPassword(int id, [FromBody] ResetPasswordDto dto)
     {
-        var result = await _userService.ResetPasswordAsync(dto);
-        if (!result.Success)
-            return BadRequest(ApiResponse<string>.Fail(result.ErrorMessage!));
+        if (id != dto.UserId)
+            return BadRequest(new { success = false, message = "El ID no coincide." });
 
-        return Ok(ApiResponse<string>.Ok(result.Data!));
+        var result = await _userService.ResetPasswordAsync(dto);
+
+        if (!result.Success)
+            return BadRequest(new { success = false, message = result.ErrorMessage });
+
+        return Ok(new { success = true, message = result.Data });
     }
 }

@@ -26,8 +26,11 @@ public class AuthService : IAuthService
     {
         var user = await _userRepo.GetByUserNameAsync(dto.Username);
 
-        if (user == null || user.IsActive == false)
+        if (user == null)
             return ServiceResult<AuthResponseDto>.Fail("Credenciales invalidas");
+
+        if (user.IsActive == false)
+            return ServiceResult<AuthResponseDto>.Fail("Tu cuenta ha sido desactivada. Contacta al administrador.");
 
         if (!VerifyPassword(dto.Password, user.PasswordHash))
             return ServiceResult<AuthResponseDto>.Fail("Credenciales invalidas");
@@ -56,7 +59,8 @@ public class AuthService : IAuthService
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new("username", user.UserName),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("FullName", $"{user.FirstName} {user.LastName}")
         };
 
         if (!string.IsNullOrEmpty(user.Email))
