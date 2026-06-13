@@ -13,8 +13,10 @@ namespace HerreraSystem.Application.Interfaces.Services
         Task<ServiceResult<UserDto>> GetByIdAsync(int id);
         Task<ServiceResult<string>> CreateAsync(CreateUserDto dto);
         Task<ServiceResult<string>> UpdateAsync(UpdateUserDto dto);
-        Task<ServiceResult<string>> ToggleStatusAsync(int id);
+        Task<ServiceResult<string>> ToggleStatusAsync(int targetUserId, int currentLoggedInUserId);
         Task<ServiceResult<string>> GeneratePasswordResetTokenAsync(ForgotPasswordRequestDto dto);
         Task<ServiceResult<string>> ResetPasswordAsync(ResetPasswordRequestDto dto);
+        Task<ServiceResult<string>> ResetPasswordAsync(ResetPasswordDto dto);
+
     }
 }

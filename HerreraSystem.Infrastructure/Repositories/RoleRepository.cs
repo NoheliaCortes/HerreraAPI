@@ -32,4 +32,9 @@ public class RoleRepository : IRoleRepository
         _context.Roles.Update(role);
         await _context.SaveChangesAsync();
     }
+    public async Task<bool> HasActiveUsersAsync(int roleId)
+    {
+        return await _context.UserRoles
+            .AnyAsync(ur => ur.RoleId == roleId && ur.User.IsActive == true);
+    }
 }
