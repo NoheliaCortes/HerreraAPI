@@ -12,5 +12,6 @@ namespace HerreraSystem.Application.Interfaces.Repositories
         Task<Role?> GetByNameAsync(string roleName);
         Task AddAsync(Role role);
         Task UpdateAsync(Role role);
+        Task<bool> HasActiveUsersAsync(int roleId);
     }
 }

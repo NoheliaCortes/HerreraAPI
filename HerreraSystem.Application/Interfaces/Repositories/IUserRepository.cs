@@ -10,7 +10,12 @@ namespace HerreraSystem.Application.Interfaces.Repositories
         Task<Role?> GetRoleByNameAsync(string roleName);
         Task<User?> GetByResetTokenAsync(string token);
         Task<IEnumerable<User>> GetAllWithRolesAsync();
+        Task<User?> GetByEmailAsync(string email);
+        Task<User?> GetByIdNumberAsync(string idNumber);
+        Task<int> CountActiveAdminsAsync();
+        Task<bool> HasInactiveRoleAsync(int userId);
         Task AddAsync(User user);
         Task UpdateAsync(User user);
+
     }
 }

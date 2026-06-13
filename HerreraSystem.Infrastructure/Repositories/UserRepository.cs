@@ -46,4 +46,22 @@ public class UserRepository : IUserRepository
         .Include(u => u.UserRoles)
         .ThenInclude(ur => ur.Role)
         .ToListAsync();
+
+    public async Task<User?> GetByEmailAsync(string email)
+        => await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+    public async Task<User?> GetByIdNumberAsync(string idNumber)
+        => await _context.Users.FirstOrDefaultAsync(u => u.IdNumber == idNumber);
+
+    public async Task<int> CountActiveAdminsAsync()
+    {
+        return await _context.UserRoles
+            .Where(ur => (ur.Role.RoleName == "Administrador" || ur.Role.RoleName == "Admin") && ur.User.IsActive == true)
+            .CountAsync();
+    }
+    public async Task<bool> HasInactiveRoleAsync(int userId)
+    {
+        return await _context.UserRoles
+            .AnyAsync(ur => ur.UserId == userId && ur.Role.IsActive == false);
+    }
 }
