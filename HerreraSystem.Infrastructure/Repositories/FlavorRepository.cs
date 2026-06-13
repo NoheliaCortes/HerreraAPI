@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Common;
 
 namespace HerreraSystem.Infrastructure.Repositories
 {
@@ -18,9 +19,12 @@ namespace HerreraSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<List<FlavorDto>> GetAllAsync()
+        public async Task<PagedResponse<FlavorDto>> GetAllAsync(
+        PaginationParams paginationParams)
         {
-            return await _context.Flavors
+            var query = _context.Flavors
+                .AsNoTracking()
+                .OrderBy(f => f.FlavorName)
                 .Select(f => new FlavorDto
                 {
                     Id = f.Id,
@@ -28,7 +32,9 @@ namespace HerreraSystem.Infrastructure.Repositories
                     IsActive = f.IsActive,
                     ImageUrl = f.ImageUrl,
                     FlavorColor = f.FlavorColor
-                }).ToListAsync();
+                });
+
+            return await query.ToPagedResponseAsync(paginationParams);
         }
 
         public async Task<FlavorDto?> GetByIdAsync(int id)
@@ -94,6 +100,21 @@ namespace HerreraSystem.Infrastructure.Repositories
         }
 
 
+        public async Task<bool> ExistsAsync(
+    string flavorName,
+    int? excludeId = null)
+        {
+            return await _context.Flavors
+                .AnyAsync(f =>
+                    f.FlavorName == flavorName &&
+                    (excludeId == null || f.Id != excludeId));
+        }
+
+        public async Task<bool> HasProductsAsync(int flavorId)
+        {
+            return await _context.Products
+                .AnyAsync(p => p.FlavorId == flavorId);
+        }
 
     }
 }
