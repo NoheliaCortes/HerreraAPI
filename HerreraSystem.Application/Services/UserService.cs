@@ -11,7 +11,7 @@ namespace HerreraSystem.Application.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepo;
-    
+
     public UserService(IUserRepository userRepo)
     {
         _userRepo = userRepo;
@@ -25,6 +25,7 @@ public class UserService : IUserService
             Id = u.Id,
             UserName = u.UserName,
             Email = u.Email,
+            IdNumber = u.IdNumber,
             FirstName = u.FirstName,
             LastName = u.LastName,
             IsActive = u.IsActive ?? false,
@@ -45,6 +46,7 @@ public class UserService : IUserService
             Id = user.Id,
             UserName = user.UserName,
             Email = user.Email,
+            IdNumber = user.IdNumber,
             FirstName = user.FirstName,
             LastName = user.LastName,
             IsActive = user.IsActive ?? false,
@@ -60,10 +62,19 @@ public class UserService : IUserService
         if (existingUser != null)
             return ServiceResult<string>.Fail("El usuario ya existe.");
 
+        var existingEmail = await _userRepo.GetByEmailAsync(dto.Email);
+        if (existingEmail != null)
+            return ServiceResult<string>.Fail("Ya existe un usuario con este correo electrónico.");
+
+        var existingId = await _userRepo.GetByIdNumberAsync(dto.IdNumber);
+        if (existingId != null)
+            return ServiceResult<string>.Fail("Ya existe un usuario con esta cédula.");
+
         var user = new User
         {
             UserName = dto.UserName,
             Email = dto.Email,
+            IdNumber = dto.IdNumber,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             PasswordHash = HashPassword(dto.Password),
@@ -99,6 +110,8 @@ public class UserService : IUserService
         user.Email = dto.Email;
         user.FirstName = dto.FirstName;
         user.LastName = dto.LastName;
+        user.IdNumber = dto.IdNumber;
+        user.IsActive = dto.IsActive;
 
         var role = await _userRepo.GetRoleByNameAsync(dto.RoleName);
         if (role != null)
@@ -116,17 +129,36 @@ public class UserService : IUserService
         return ServiceResult<string>.Ok("Usuario actualizado exitosamente.");
     }
 
-    public async Task<ServiceResult<string>> ToggleStatusAsync(int id)
+    public async Task<ServiceResult<string>> ToggleStatusAsync(int targetUserId, int currentLoggedInUserId)
     {
-        var user = await _userRepo.GetByIdWithRoleAsync(id);
+        if (targetUserId == currentLoggedInUserId)
+            return ServiceResult<string>.Fail("No puedes desactivar tu propia cuenta.");
+
+        var user = await _userRepo.GetByIdWithRoleAsync(targetUserId);
         if (user == null)
             return ServiceResult<string>.Fail("Usuario no encontrado.");
+
+        if (user.IsActive == true)
+        {
+            var roles = await _userRepo.GetUserRolesAsync(user.Id);
+            if (roles.Contains("Administrador") || roles.Contains("Admin"))
+            {
+                var activeAdminsCount = await _userRepo.CountActiveAdminsAsync();
+                if (activeAdminsCount <= 1)
+                    return ServiceResult<string>.Fail("Debe quedar al menos un Administrador activo en el sistema.");
+            }
+        }
+        if (user.IsActive == false || user.IsActive == null)
+        {
+            var hasInactiveRole = await _userRepo.HasInactiveRoleAsync(user.Id);
+            if (hasInactiveRole)
+                return ServiceResult<string>.Fail("No se puede activar el usuario porque su rol asignado está desactivado.");
+        }
 
         user.IsActive = !(user.IsActive ?? false);
         await _userRepo.UpdateAsync(user);
 
-        var status = user.IsActive == true ? "activado" : "desactivado";
-        return ServiceResult<string>.Ok($"Usuario {status} exitosamente.");
+        return ServiceResult<string>.Ok("Estado actualizado correctamente.");
     }
 
     public async Task<ServiceResult<string>> GeneratePasswordResetTokenAsync(ForgotPasswordRequestDto dto)
@@ -157,6 +189,18 @@ public class UserService : IUserService
 
         await _userRepo.UpdateAsync(user);
         return ServiceResult<string>.Ok("Contrasena actualizada exitosamente");
+    }
+
+    public async Task<ServiceResult<string>> ResetPasswordAsync(ResetPasswordDto dto)
+    {
+        var user = await _userRepo.GetByIdWithRoleAsync(dto.UserId);
+        if (user == null)
+            return ServiceResult<string>.Fail("Usuario no encontrado.");
+
+        user.PasswordHash = HashPassword(dto.NewPassword);
+
+        await _userRepo.UpdateAsync(user);
+        return ServiceResult<string>.Ok("Contraseña actualizada correctamente.");
     }
 
     private static byte[] HashPassword(string password)

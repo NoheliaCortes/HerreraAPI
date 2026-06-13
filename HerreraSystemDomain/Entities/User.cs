@@ -10,6 +10,7 @@ public partial class User
     public string UserName { get; set; } = null!;
 
     public string Email { get; set; } = null!;
+    public string IdNumber { get; set; } = null!;
 
     public byte[] PasswordHash { get; set; } = null!;
 

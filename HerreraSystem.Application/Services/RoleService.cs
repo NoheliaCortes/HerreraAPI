@@ -55,8 +55,7 @@ public class RoleService : IRoleService
         var role = new Role
         {
             RoleName = dto.RoleName,
-            RoleDescription = dto.RoleDescription,
-            IsActive = true
+            RoleDescription = dto.RoleDescription
         };
 
         await _roleRepo.AddAsync(role);
@@ -85,6 +84,16 @@ public class RoleService : IRoleService
         var role = await _roleRepo.GetByIdAsync(id);
         if (role == null)
             return ServiceResult<string>.Fail("Rol no encontrado.");
+
+        if (role.IsActive == true)
+        {
+            if (role.RoleName == "Administrador" || role.RoleName == "Admin")
+                return ServiceResult<string>.Fail("No se puede desactivar el rol del sistema.");
+
+            var hasActiveUsers = await _roleRepo.HasActiveUsersAsync(role.Id);
+            if (hasActiveUsers)
+                return ServiceResult<string>.Fail("No se puede desactivar este rol porque tiene usuarios activos asignados.");
+        }
 
         role.IsActive = !role.IsActive;
 
