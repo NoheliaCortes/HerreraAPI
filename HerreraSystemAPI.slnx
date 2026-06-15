@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="HerreraSystem.Application/HerreraSystem.Application.csproj" Id="0b106c15-690d-48e3-86ce-a603bf751ed8" />
   <Project Path="HerreraSystem.Infrastructure/HerreraSystem.Infrastructure.csproj" Id="27ad1335-f708-4ae8-9631-994e0eb11307" />
+  <Project Path="HerreraSystem.Tests/HerreraSystem.Tests.csproj" Id="0da6330c-e124-480a-b49a-5346784127a0" />
   <Project Path="HerreraSystemAPI/HerreraSystem.API.csproj" />
   <Project Path="HerreraSystemDomain/HerreraSystem.Domain.csproj" Id="42be8d02-8b2f-4d1a-b5ba-a39e67066ab8" />
 </Solution>

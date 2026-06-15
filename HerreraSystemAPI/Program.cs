@@ -79,9 +79,19 @@ builder.Services.AddDbContext<HerreraSystemContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IFlavorRepository, FlavorRepository>();
+
+builder.Services.AddScoped<IFlavorService, FlavorService>();
+
+
 builder.Services.AddScoped<ILineRepository, LineRepository>();
 builder.Services.AddScoped<IPresentationRepository, PresentationRepository>();
 builder.Services.AddScoped<ILinePresentationRepository, LinePresentationRepository>();
+
+
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+
+
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IGeneralPriceRepository, GeneralPriceRepository>();
@@ -106,6 +116,15 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+
+builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IMunicipalityRepository, MunicipalityRepository>();
+builder.Services.AddScoped<IMunicipalityService, MunicipalityService>();
+
+
+
 
 builder.Services.AddCors(options =>
 {
