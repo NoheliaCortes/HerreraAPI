@@ -20,14 +20,26 @@ namespace HerreraSystem.API.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetAll(
-            [FromQuery] PaginationParams paginationParams)
+            [FromQuery] PaginationParams paginationParams,
+            [FromQuery] string? search,
+            [FromQuery] int? departmentId,
+            [FromQuery] int? municipalityId)
         {
             var data = await _customerService
-                .GetAllAsync(paginationParams);
+                .GetAllAsync(paginationParams, search, departmentId, municipalityId);
 
-            return Ok(
-                ApiResponse<PagedResponse<CustomerDto>>
-                    .Ok(data));
+            return Ok(ApiResponse<PagedResponse<CustomerDto>>.Ok(data));
+        }
+
+        [HttpGet("stats")]
+        public async Task<IActionResult> GetStats()
+        {
+            var result = await _customerService.GetStatsAsync();
+
+            if (!result.Success)
+                return BadRequest(ApiResponse<CustomerStatsDto>.Fail(result.ErrorMessage!));
+
+            return Ok(ApiResponse<CustomerStatsDto>.Ok(result.Data!));
         }
 
         [HttpGet("{id}")]

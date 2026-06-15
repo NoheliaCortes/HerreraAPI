@@ -8,7 +8,15 @@ namespace HerreraSystem.Application.Interfaces.Repositories
 {
     public interface ICustomerRepository
     {
-        Task<PagedResponse<CustomerDto>> GetAllAsync(PaginationParams paginationParams);
+        // Modificado para aceptar filtros opcionales
+        Task<PagedResponse<CustomerDto>> GetAllAsync(
+            PaginationParams paginationParams,
+            string? search,
+            int? departmentId,
+            int? municipalityId);
+
+        // Nuevo método para estadísticas
+        Task<CustomerStatsDto> GetStatsAsync();
         Task<CustomerDto?> GetByIdAsync(int id);
         Task<CustomerDto> CreateAsync(CreateCustomerDto dto);
         Task<bool> UpdateAsync(int id, UpdateCustomerDto dto);

@@ -18,10 +18,19 @@ namespace HerreraSystem.Application.Services
         }
 
         public async Task<PagedResponse<CustomerDto>> GetAllAsync(
-            PaginationParams paginationParams)
+      PaginationParams paginationParams,
+      string? search,
+      int? departmentId,
+      int? municipalityId)
         {
             return await _customerRepository
-                .GetAllAsync(paginationParams);
+                .GetAllAsync(paginationParams, search, departmentId, municipalityId);
+        }
+
+        public async Task<ServiceResult<CustomerStatsDto>> GetStatsAsync()
+        {
+            var stats = await _customerRepository.GetStatsAsync();
+            return ServiceResult<CustomerStatsDto>.Ok(stats);
         }
 
         public async Task<ServiceResult<CustomerDto>> GetByIdAsync(int id)
