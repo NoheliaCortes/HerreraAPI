@@ -20,14 +20,39 @@ namespace HerreraSystem.Infrastructure.Repositories
         }
 
         public async Task<PagedResponse<CustomerDto>> GetAllAsync(
-            PaginationParams paginationParams)
+     PaginationParams paginationParams,
+     string? search,
+     int? departmentId,
+     int? municipalityId)
         {
-            var query = _context.Customers
-                .AsNoTracking()
-                .Include(c => c.Municipality)
-                    .ThenInclude(m => m.Department)
+            var query = _context.Customers.AsNoTracking();
+
+            // 1. Filtro por texto libre (Aplica en FirstName, LastName, Phone o PointOfSale)
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim().ToLower();
+                query = query.Where(c => c.FirstName.ToLower().Contains(search)
+                                      || c.LastName.ToLower().Contains(search)
+                                      || (c.Phone != null && c.Phone.Contains(search))
+                                      || (c.PointOfSale != null && c.PointOfSale.ToLower().Contains(search)));
+            }
+
+            // 2. Filtro por Departamento (Id)
+            if (departmentId.HasValue)
+            {
+                query = query.Where(c => c.Municipality.DepartmentId == departmentId.Value);
+            }
+
+            // 3. Filtro por Municipio (Id)
+            if (municipalityId.HasValue)
+            {
+                query = query.Where(c => c.MunicipalityId == municipalityId.Value);
+            }
+
+            // Aplicamos ordenamiento e incluimos proyecciones
+            var projectedQuery = query
                 .OrderBy(c => c.LastName)
-                    .ThenBy(c => c.FirstName)
+                .ThenBy(c => c.FirstName)
                 .Select(c => new CustomerDto
                 {
                     Id = c.Id,
@@ -43,7 +68,35 @@ namespace HerreraSystem.Infrastructure.Repositories
                     IsActive = c.IsActive
                 });
 
-            return await query.ToPagedResponseAsync(paginationParams);
+            // La paginación heredará automáticamente los filtros aplicados arriba
+            return await projectedQuery.ToPagedResponseAsync(paginationParams);
+        }
+
+        public async Task<CustomerStatsDto> GetStatsAsync()
+        {
+            // Clientes activos e inactivos (Considerando null como inactivo o activo según tu lógica, aquí asumimos true = activo)
+            int active = await _context.Customers.CountAsync(c => c.IsActive == true);
+            int inactive = await _context.Customers.CountAsync(c => c.IsActive == false || c.IsActive == null);
+
+            // Cantidad de municipios distintos que tienen al menos un cliente registrado
+            int distinctMunicipalities = await _context.Customers
+                .Select(c => c.MunicipalityId)
+                .Distinct()
+                .CountAsync();
+
+            // Cantidad de Puntos de Venta (POS) que pertenecen a clientes activos y que no están vacíos
+            int activePos = await _context.Customers
+                .CountAsync(c => c.IsActive == true
+                              && c.PointOfSale != null
+                              && c.PointOfSale != "");
+
+            return new CustomerStatsDto
+            {
+                ActiveCustomers = active,
+                InactiveCustomers = inactive,
+                DistinctMunicipalitiesWithCustomers = distinctMunicipalities,
+                ActivePointsOfSale = activePos
+            };
         }
 
         public async Task<CustomerDto?> GetByIdAsync(int id)
