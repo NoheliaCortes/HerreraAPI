@@ -19,6 +19,7 @@ namespace HerreraSystem.Application.Interfaces.Services
         bool? active,
         PaginationParams paginationParams);
         Task<ServiceResult<ProductDto>> CreateAsync(CreateProductDto dto);
+        Task<ServiceResult<bool>> UpdateAsync(int id, UpdateProductDto dto);
         Task<ServiceResult<bool>> PatchAsync(int id, PatchProductDto dto);
         Task<ServiceResult<bool>> DeleteAsync(int id);
 
