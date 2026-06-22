@@ -71,6 +71,21 @@ namespace HerreraSystem.API.Controllers
                 ApiResponse<ProductDto>.Ok(result.Data, "Producto creado exitosamente"));
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, UpdateProductDto dto)
+        {
+            var result = await _productService.UpdateAsync(id, dto);
+            if (!result.Success)
+            {
+                if (result.ErrorMessage!.Contains("no encontrado"))
+                    return NotFound(ApiResponse<object>.Fail(result.ErrorMessage));
+
+                return BadRequest(ApiResponse<object>.Fail(result.ErrorMessage));
+            }
+
+            return Ok(ApiResponse<object>.Ok(null!, "Producto actualizado exitosamente"));
+        }
+
         [HttpPatch("{id}")]
         public async Task<IActionResult> Patch(int id, PatchProductDto dto)
         {

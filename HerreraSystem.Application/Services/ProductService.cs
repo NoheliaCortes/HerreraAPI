@@ -81,6 +81,36 @@ namespace HerreraSystem.Application.Services
             return ServiceResult<ProductDto>.Ok(created);
         }
 
+        public async Task<ServiceResult<bool>> UpdateAsync(int id, UpdateProductDto dto)
+        {
+            var product = await _productRepository.GetByIdAsync(id);
+            if (product is null)
+                return ServiceResult<bool>.Fail($"Producto con Id {id} no encontrado");
+
+            var flavor = await _flavorRepository.GetByIdAsync(dto.FlavorId);
+            if (flavor is null)
+                return ServiceResult<bool>.Fail(
+                    $"El sabor con Id {dto.FlavorId} no existe");
+
+            var linePresentation = await _linePresentationRepository
+                .GetByIdAsync(dto.LinePresentationId);
+            if (linePresentation is null)
+                return ServiceResult<bool>.Fail(
+                    $"La presentación de línea con Id {dto.LinePresentationId} no existe");
+
+            var isDuplicate = await _productRepository.ExistsAsync(
+                dto.ProductName,
+                dto.LinePresentationId,
+                dto.FlavorId,
+                excludeId: id);
+            if (isDuplicate)
+                return ServiceResult<bool>.Fail(
+                    $"Ya existe un producto '{dto.ProductName}' con esa línea y sabor");
+
+            await _productRepository.UpdateAsync(id, dto);
+            return ServiceResult<bool>.Ok(true);
+        }
+
         public async Task<ServiceResult<bool>> PatchAsync(int id, PatchProductDto dto)
         {
             var product = await _productRepository.GetByIdAsync(id);
