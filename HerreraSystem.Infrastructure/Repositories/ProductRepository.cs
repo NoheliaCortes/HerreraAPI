@@ -93,6 +93,22 @@ namespace HerreraSystem.Infrastructure.Repositories
             };
         }
 
+        public async Task<bool> UpdateAsync(int id, UpdateProductDto dto)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product is null) return false;
+
+            product.LinePresentationId = dto.LinePresentationId;
+            product.FlavorId = dto.FlavorId;
+            product.ProductName = dto.ProductName;
+            product.IsActive = dto.IsActive;
+            product.ImageUrl = dto.ImageUrl;
+            product.MinimumStock = dto.MinimumStock;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<bool> PatchAsync(int id, PatchProductDto dto)
         {
             var product = await _context.Products.FindAsync(id);

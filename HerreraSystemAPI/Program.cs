@@ -3,6 +3,7 @@ using HerreraSystem.Application.Common;
 using HerreraSystem.Application.Interfaces.Repositories;
 using HerreraSystem.Application.Interfaces.Services;
 using HerreraSystem.Application.Services;
+using HerreraSystem.API.Services;
 using HerreraSystem.Infrastructure.Data;
 using HerreraSystem.Infrastructure.Persistence;
 using HerreraSystem.Infrastructure.Repositories;
@@ -94,6 +95,7 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IProductImageService, ProductImageService>();
 builder.Services.AddScoped<IGeneralPriceRepository, GeneralPriceRepository>();
 builder.Services.AddScoped<IGeneralPriceService, GeneralPriceService>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
@@ -140,6 +142,8 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
+Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"), "uploads", "products"));
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -147,6 +151,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseCors("PermitirFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
