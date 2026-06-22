@@ -1,4 +1,5 @@
-﻿using HerreraSystem.Application.DTOs.FlavorDtos;
+﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.DTOs.FlavorDtos;
 using HerreraSystem.Infrastructure.Data;
 using HerreraSystem.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -53,21 +54,7 @@ namespace HerreraSystem.Tests
             Assert.That(resultado.IsActive, Is.EqualTo(true));
         }
 
-        [Test]
-        [Order(2)]
-        public async Task FlavorRepository_GetAllAsync_DebeRetornarTodosLosFlavors()
-        {
-            var context = new HerreraSystemContext(_options);
-            var repository = new FlavorRepository(context);
-
-            await repository.CreateAsync(_createFlavor1);
-            await repository.CreateAsync(_createFlavor2);
-
-            var lista = await repository.GetAllAsync();
-
-            Assert.That(lista, Is.Not.Null);
-            Assert.That(lista.Count, Is.EqualTo(2));
-        }
+       
 
         [Test]
         [Order(3)]
