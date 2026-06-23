@@ -75,6 +75,7 @@ public partial class HerreraSystemContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserRole> UserRoles { get; set; }
+    public virtual DbSet<BusinessProfile> BusinessProfiles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
