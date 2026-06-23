@@ -7,7 +7,7 @@ namespace HerreraSystem.API.Middleware
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
-        // RequestDelegate representa el siguiente paso en el pipeline de la petición
+  
 
         public ExceptionMiddleware(RequestDelegate next)
         {
@@ -23,9 +23,8 @@ namespace HerreraSystem.API.Middleware
             }
             catch (Exception ex)
             {
-                // Si en cualquier parte del proceso explota algo,
-                // lo captura aquí y retorna tu formato ApiResponse
-                // en vez del HTML de error feo que manda ASP.NET por defecto
+                
+                
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 context.Response.ContentType = "application/json";
 
