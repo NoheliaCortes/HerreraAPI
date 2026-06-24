@@ -1,11 +1,9 @@
-﻿using HerreraSystem.Application.DTOs.LineDtos;
+﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.DTOs.LineDtos;
+using HerreraSystem.Application.Interfaces.Repositories;
 using HerreraSystem.Domain.Entities;
 using HerreraSystem.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
-using HerreraSystem.Application.Interfaces.Repositories;
 
 namespace HerreraSystem.Infrastructure.Repositories
 {
@@ -18,17 +16,34 @@ namespace HerreraSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<List<LineDto>> GetAllAsync()
+        public async Task<PagedResponse<LineDto>> GetAllAsync(PaginationParams paginationParams)
         {
-            return await _context.Lines
+            var query = _context.Lines
+                .AsNoTracking()
+                .OrderBy(l => l.Id)
                 .Select(l => new LineDto
                 {
                     Id = l.Id,
                     LineName = l.LineName,
                     IsActive = l.IsActive
-                }).ToListAsync();
-        }
+                });
 
+            var totalRecords = await query.CountAsync();
+
+            var items = await query
+                .Skip((paginationParams.Page - 1) * paginationParams.PageSize)
+                .Take(paginationParams.PageSize)
+                .ToListAsync();
+
+            return new PagedResponse<LineDto>
+            {
+                Data = items,
+                CurrentPage = paginationParams.Page,
+                PageSize = paginationParams.PageSize,
+                TotalRecords = totalRecords,
+                TotalPages = (int)Math.Ceiling(totalRecords / (double)paginationParams.PageSize)
+            };
+        }
         public async Task<LineDto?> GetByIdAsync(int id)
         {
             var line = await _context.Lines.FindAsync(id);
@@ -42,12 +57,24 @@ namespace HerreraSystem.Infrastructure.Repositories
             };
         }
 
+        public async Task<bool> ExistsByNameAsync(string lineName)
+        {
+            var normalized = lineName.Trim().ToLower();
+            return await _context.Lines.AnyAsync(l => l.LineName.ToLower() == normalized);
+        }
+
+        public async Task<bool> ExistsByNameAsync(string lineName, int excludeId)
+        {
+            var normalized = lineName.Trim().ToLower();
+            return await _context.Lines.AnyAsync(l => l.Id != excludeId && l.LineName.ToLower() == normalized);
+        }
+
         public async Task<LineDto> CreateAsync(CreateLineDto dto)
         {
             var line = new Line
             {
-                LineName = dto.LineName,
-                IsActive = true
+                LineName = dto.LineName.Trim(),
+                IsActive = dto.IsActive ?? true
             };
 
             _context.Lines.Add(line);
@@ -66,8 +93,8 @@ namespace HerreraSystem.Infrastructure.Repositories
             var line = await _context.Lines.FindAsync(id);
             if (line is null) return false;
 
-            line.LineName = dto.LineName;
-            line.IsActive = dto.IsActive;
+            line.LineName = dto.LineName.Trim();
+            line.IsActive = dto.IsActive ?? line.IsActive;
 
             await _context.SaveChangesAsync();
             return true;
@@ -82,6 +109,5 @@ namespace HerreraSystem.Infrastructure.Repositories
             await _context.SaveChangesAsync();
             return true;
         }
-
     }
 }

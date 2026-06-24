@@ -87,7 +87,8 @@ builder.Services.AddScoped<IFlavorService, FlavorService>();
 builder.Services.AddScoped<ILineRepository, LineRepository>();
 builder.Services.AddScoped<IPresentationRepository, PresentationRepository>();
 builder.Services.AddScoped<ILinePresentationRepository, LinePresentationRepository>();
-
+builder.Services.AddScoped<ILineService, LineService>();
+builder.Services.AddScoped<IPresentationService, PresentationService>();
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();

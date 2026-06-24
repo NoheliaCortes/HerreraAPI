@@ -1,6 +1,6 @@
 ﻿using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.PresentationDtos;
-using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HerreraSystem.API.Controllers
@@ -9,45 +9,59 @@ namespace HerreraSystem.API.Controllers
     [Route("api/[controller]")]
     public class PresentationsController : ControllerBase
     {
-        private readonly IPresentationRepository _presentationRepository;
+        private readonly IPresentationService _presentationService;
 
-        public PresentationsController(IPresentationRepository presentationRepository)
+        public PresentationsController(IPresentationService presentationService)
         {
-            _presentationRepository = presentationRepository;
+            _presentationService = presentationService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] PaginationParams paginationParams)
         {
-            var data = await _presentationRepository.GetAllAsync();
-            return Ok(ApiResponse<List<PresentationDto>>.Ok(data));
+            var data = await _presentationService.GetAllAsync(paginationParams);
+
+            return Ok(ApiResponse<PagedResponse<PresentationDto>>.Ok(data));
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var presentation = await _presentationRepository.GetByIdAsync(id);
-            if (presentation is null)
-                return NotFound(ApiResponse<PresentationDto>.Fail($"Presentación con Id {id} no encontrada"));
+            var result = await _presentationService.GetByIdAsync(id);
 
-            return Ok(ApiResponse<PresentationDto>.Ok(presentation));
+            if (!result.Success)
+                return NotFound(ApiResponse<PresentationDto>.Fail(result.ErrorMessage!));
+
+            return Ok(ApiResponse<PresentationDto>.Ok(result.Data!));
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(CreatePresentationDto dto)
         {
-            var created = await _presentationRepository.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById),
-                new { id = created.Id },
-                ApiResponse<PresentationDto>.Ok(created, "Presentación creada exitosamente"));
+            var result = await _presentationService.CreateAsync(dto);
+
+            if (!result.Success)
+                return BadRequest(ApiResponse<PresentationDto>.Fail(result.ErrorMessage!));
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = result.Data!.Id },
+                ApiResponse<PresentationDto>.Ok(result.Data, "Presentación creada exitosamente"));
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, UpdatePresentationDto dto)
         {
-            var updated = await _presentationRepository.UpdateAsync(id, dto);
-            if (!updated)
-                return NotFound(ApiResponse<PresentationDto>.Fail($"Presentación con Id {id} no encontrada"));
+            var result = await _presentationService.UpdateAsync(id, dto);
+
+            if (!result.Success)
+            {
+                if (result.ErrorMessage!.Contains("no encontrada"))
+                    return NotFound(ApiResponse<object>.Fail(result.ErrorMessage));
+
+                return BadRequest(ApiResponse<object>.Fail(result.ErrorMessage));
+            }
 
             return Ok(ApiResponse<object>.Ok(null!, "Presentación actualizada exitosamente"));
         }
@@ -55,9 +69,15 @@ namespace HerreraSystem.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var deleted = await _presentationRepository.DeleteAsync(id);
-            if (!deleted)
-                return NotFound(ApiResponse<PresentationDto>.Fail($"Presentación con Id {id} no encontrada"));
+            var result = await _presentationService.DeleteAsync(id);
+
+            if (!result.Success)
+            {
+                if (result.ErrorMessage!.Contains("no encontrada"))
+                    return NotFound(ApiResponse<object>.Fail(result.ErrorMessage));
+
+                return BadRequest(ApiResponse<object>.Fail(result.ErrorMessage));
+            }
 
             return Ok(ApiResponse<object>.Ok(null!, "Presentación eliminada exitosamente"));
         }
