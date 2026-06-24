@@ -8,6 +8,7 @@ namespace HerreraSystem.Application.DTOs.InventoryDtos
     {
         public int ProductId { get; set; }
         public string ProductName { get; set; } = null!;
+        public string? ImageUrl { get; set; }
         public string LineName { get; set; } = null!;
         public string PresentationName { get; set; } = null!;
         public string FlavorName { get; set; } = null!;
