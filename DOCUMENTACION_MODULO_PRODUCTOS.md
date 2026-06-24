@@ -27,20 +27,23 @@ Endpoints disponibles:
 |---|---:|---|---|
 | Listar productos basicos | GET | `/api/Products` | No requerida |
 | Listar catalogo enriquecido | GET | `/api/Products/catalog` | No requerida |
+| Listar productos activos por linea-presentacion | GET | `/api/Products/by-line-presentation` | No requerida |
+| Obtener estadisticas de productos | GET | `/api/Products/stats` | No requerida |
 | Obtener producto por ID | GET | `/api/Products/{id}` | No requerida |
 | Subir imagen de producto | POST | `/api/uploads/products` | No requerida |
-| Crear producto | POST | `/api/Products` | No requerida |
-| Actualizar producto completo | PUT | `/api/Products/{id}` | No requerida |
-| Actualizar producto parcialmente | PATCH | `/api/Products/{id}` | No requerida |
-| Eliminar producto | DELETE | `/api/Products/{id}` | No requerida |
+| Crear producto | POST | `/api/Products` | JWT Bearer requerido |
+| Actualizar producto completo | PUT | `/api/Products/{id}` | JWT Bearer requerido |
+| Actualizar producto parcialmente | PATCH | `/api/Products/{id}` | JWT Bearer requerido |
+| Eliminar producto | DELETE | `/api/Products/{id}` | JWT Bearer requerido |
 
 Notas importantes:
 
 - Existe `PUT` para procesar formularios de edicion completa y `PATCH` para actualizaciones parciales.
 - El campo `ImageUrl` ya no debe escribirse manualmente en el frontend. Primero se sube el archivo a `POST /api/uploads/products`; la API devuelve una URL relativa y esa URL se guarda luego en `ImageUrl`.
+- El campo `CreatedBy` ya no se recibe desde el frontend al crear productos. La API lo toma del JWT mediante `ICurrentUserService`.
 - Todas las respuestas exitosas/controladas estan envueltas en `ApiResponse<T>`.
 - Los listados devuelven `ApiResponse<PagedResponse<T>>`.
-- `ProductsController` no tiene `[Authorize]` en clase ni en metodos. Aunque la API configura JWT Bearer globalmente, estos endpoints son publicos en el estado actual del codigo.
+- `POST`, `PUT`, `PATCH` y `DELETE` de productos tienen `[Authorize]`. Los `GET` siguen publicos.
 - Con `[ApiController]`, los parametros complejos de `POST` y `PATCH` se infieren como `[FromBody]` aunque el atributo no este escrito.
 - ASP.NET Core serializa normalmente los resultados de controladores con nombres JSON en `camelCase`. El middleware global de excepciones serializa manualmente sin opciones, por lo que errores 500 no controlados pueden salir con propiedades `Success`, `Message`, `Data` en `PascalCase`.
 
@@ -168,6 +171,7 @@ El servicio `ProductService` aplica reglas adicionales:
   - `LinePresentationId` debe existir.
   - No puede existir otro producto con el mismo `ProductName`, `LinePresentationId` y `FlavorId`.
   - `IsActive` se crea siempre como `true`.
+  - `CreatedBy` se toma del usuario autenticado mediante `ICurrentUserService`; no se recibe desde el body.
   - `CreatedAt` se asigna con `DateTime.UtcNow`.
 - Actualizar parcialmente:
   - El producto `{id}` debe existir.
@@ -196,15 +200,14 @@ POST /api/Products
 | `LinePresentationId` | `int` | `number` | No | Si | `[Required(ErrorMessage = "El LinePresentationId es obligatorio")]` |
 | `FlavorId` | `int` | `number` | No | Si | `[Required(ErrorMessage = "El FlavorId es obligatorio")]` |
 | `ProductName` | `string` | `string` | No | Si | `[Required(ErrorMessage = "El nombre del producto es obligatorio")]`, `[StringLength(150, ErrorMessage = "El nombre no puede exceder 150 caracteres")]` |
-| `CreatedBy` | `int` | `number` | No | Si | `[Required(ErrorMessage = "El CreatedBy es obligatorio")]` |
 | `ImageUrl` | `string?` | `string \| null` | Si | No | `[Url(ErrorMessage = "La URL de la imagen no es válida")]` |
 | `MinimumStock` | `int` | `number` | No | No tecnicamente en JSON; default `0` si falta | `[Range(0, int.MaxValue, ErrorMessage = "El stock mínimo no puede ser negativo")]` |
 
 Advertencia de model binding:
 
-- `LinePresentationId`, `FlavorId`, `CreatedBy` y `MinimumStock` son `int` no-nullable. Si el front-end omite alguno, ASP.NET puede bindearlo como `0`; `[Required]` no detecta `0` como ausente en tipos valor.
+- `LinePresentationId`, `FlavorId` y `MinimumStock` son `int` no-nullable. Si el front-end omite alguno, ASP.NET puede bindearlo como `0`; `[Required]` no detecta `0` como ausente en tipos valor.
 - Por eso el front-end debe tratarlos como obligatorios aunque el servidor pueda aceptar `0` y fallar luego por reglas de negocio o FK.
-- `CreatedBy` no se valida en `ProductService`; si no existe el usuario, EF/SQL Server puede producir error de FK y devolver 500.
+- `CreatedBy` no forma parte del request. La API lo obtiene del JWT y falla con `400` si no puede identificar al usuario autenticado.
 
 Interface TypeScript:
 
@@ -213,7 +216,6 @@ export interface CreateProductRequest {
   linePresentationId: number;
   flavorId: number;
   productName: string;
-  createdBy: number;
   imageUrl?: string | null;
   minimumStock: number;
 }
@@ -226,7 +228,6 @@ JSON esperado:
   "linePresentationId": 1,
   "flavorId": 2,
   "productName": "Helado Fresa 1L",
-  "createdBy": 1,
   "imageUrl": "https://example.com/productos/helado-fresa-1l.png",
   "minimumStock": 10
 }
@@ -452,7 +453,69 @@ Ejemplo JSON:
 }
 ```
 
-### 4.6 `ProductImageUploadResponseDto`
+### 4.6 `ProductSelectionDto`
+
+Archivo: `HerreraSystem.Application/DTOs/ProductDtos/ProductSelectionDto.cs`
+
+Usado por:
+
+```http
+GET /api/Products/by-line-presentation?linePresentationId={linePresentationId}
+```
+
+DTO optimizado para selects de Restock y ventas cuando el frontend ya conoce el `linePresentationId`.
+
+| Propiedad C# | Tipo C# | Tipo TypeScript | Nullable | Descripcion |
+|---|---|---|---:|---|
+| `ProductId` | `int` | `number` | No | ID del producto. |
+| `ProductName` | `string` | `string` | No | Nombre del producto. |
+| `LinePresentationId` | `int` | `number` | No | ID de la combinacion linea-presentacion. |
+| `LineName` | `string` | `string` | No | Nombre de linea. |
+| `PresentationName` | `string` | `string` | No | Nombre de presentacion. |
+| `FlavorId` | `int` | `number` | No | ID del sabor. |
+| `FlavorName` | `string` | `string` | No | Nombre del sabor. |
+
+Interface TypeScript:
+
+```ts
+export interface ProductSelectionDto {
+  productId: number;
+  productName: string;
+  linePresentationId: number;
+  lineName: string;
+  presentationName: string;
+  flavorId: number;
+  flavorName: string;
+}
+```
+
+### 4.7 `ProductStatsDto`
+
+Archivo: `HerreraSystem.Application/DTOs/ProductDtos/ProductStatsDto.cs`
+
+Usado por:
+
+```http
+GET /api/Products/stats
+```
+
+| Propiedad C# | Tipo C# | Tipo TypeScript | Nullable | Descripcion |
+|---|---|---|---:|---|
+| `TotalProducts` | `int` | `number` | No | Total de productos registrados. |
+| `ActiveProducts` | `int` | `number` | No | Productos con `IsActive == true`. |
+| `InactiveProducts` | `int` | `number` | No | Productos con `IsActive != true`; incluye `false` y `null` por ser nullable. |
+
+Interface TypeScript:
+
+```ts
+export interface ProductStatsDto {
+  totalProducts: number;
+  activeProducts: number;
+  inactiveProducts: number;
+}
+```
+
+### 4.8 `ProductImageUploadResponseDto`
 
 Archivo: `HerreraSystem.Application/DTOs/UploadDtos/ProductImageUploadResponseDto.cs`
 
@@ -564,6 +627,7 @@ Metodo del controlador:
 [HttpGet("catalog")]
 public async Task<IActionResult> GetCatalog(
     [FromQuery] int? lineId,
+    [FromQuery] int? presentationId,
     [FromQuery] int? flavorId,
     [FromQuery] string? search,
     [FromQuery] bool? active,
@@ -575,6 +639,7 @@ Parametros:
 | Nombre | Ubicacion | Tipo C# | Tipo TS | Requerido | Descripcion |
 |---|---|---|---|---:|---|
 | `lineId` | Query string | `int?` | `number \| undefined` | No | Filtra por `LinePresentation.LineId`. |
+| `presentationId` | Query string | `int?` | `number \| undefined` | No | Filtra por `Product.LinePresentation.PresentationId`. |
 | `flavorId` | Query string | `int?` | `number \| undefined` | No | Filtra por `Product.FlavorId`. |
 | `search` | Query string | `string?` | `string \| undefined` | No | Filtra productos cuyo `ProductName` contiene el texto. |
 | `active` | Query string | `bool?` | `boolean \| undefined` | No | Filtra por `IsActive`. |
@@ -584,7 +649,7 @@ Parametros:
 Ejemplo request:
 
 ```http
-GET /api/Products/catalog?lineId=1&flavorId=2&search=fresa&active=true&page=1&pageSize=12
+GET /api/Products/catalog?lineId=1&presentationId=2&flavorId=3&search=fresa&active=true&page=1&pageSize=12
 ```
 
 Respuesta exitosa:
@@ -625,11 +690,142 @@ Ordenamiento:
 
 - El repositorio ordena por `ProductName` ascendente.
 
+Compatibilidad:
+
+- `presentationId` es opcional.
+- Si no se envia, el catalogo mantiene el comportamiento anterior.
+- Puede combinarse con `lineId`, `flavorId`, `search`, `active`, `page` y `pageSize`.
+
 Errores comunes:
 
 - `500 Internal Server Error` si falla la consulta EF, una relacion esperada es nula o hay problemas con SQL Server.
 
-### 5.3 Obtener producto por ID
+### 5.3 Listar productos activos por LinePresentation
+
+```http
+GET /api/Products/by-line-presentation?linePresentationId={linePresentationId}
+```
+
+Endpoint auxiliar para Restock y ventas. Devuelve productos activos de una combinacion linea-presentacion especifica.
+
+Metodo del controlador:
+
+```csharp
+[HttpGet("by-line-presentation")]
+public async Task<IActionResult> GetByLinePresentation(
+    [FromQuery] int linePresentationId)
+```
+
+Parametros:
+
+| Nombre | Ubicacion | Tipo C# | Tipo TS | Requerido | Descripcion |
+|---|---|---|---|---:|---|
+| `linePresentationId` | Query string | `int` | `number` | Si | ID de la combinacion linea-presentacion seleccionada. Debe ser mayor que cero. |
+
+Ejemplo request:
+
+```http
+GET /api/Products/by-line-presentation?linePresentationId=5
+```
+
+Respuesta exitosa con datos:
+
+```http
+200 OK
+```
+
+```json
+{
+  "success": true,
+  "message": "Operación exitosa",
+  "data": [
+    {
+      "productId": 15,
+      "productName": "Premium Litro Fresa",
+      "linePresentationId": 5,
+      "lineName": "Premium",
+      "presentationName": "Litro",
+      "flavorId": 2,
+      "flavorName": "Fresa"
+    }
+  ]
+}
+```
+
+Respuesta exitosa sin productos:
+
+```json
+{
+  "success": true,
+  "message": "Operación exitosa",
+  "data": []
+}
+```
+
+Validaciones:
+
+- Si `linePresentationId <= 0`, retorna `400 Bad Request`.
+- No valida existencia de la relacion; si no existe o no tiene productos activos, retorna lista vacia.
+
+Error por parametro invalido:
+
+```http
+400 Bad Request
+```
+
+```json
+{
+  "success": false,
+  "message": "El LinePresentationId debe ser mayor que cero",
+  "data": null
+}
+```
+
+Reglas de consulta:
+
+- Filtra `Product.LinePresentationId == linePresentationId`.
+- Filtra solo productos activos con `IsActive == true`.
+- Ordena por `FlavorName` y luego por `ProductName`.
+- Mantiene formato `ApiResponse<List<ProductSelectionDto>>`.
+
+### 5.4 Estadisticas de productos
+
+```http
+GET /api/Products/stats
+```
+
+Metodo del controlador:
+
+```csharp
+[HttpGet("stats")]
+public async Task<IActionResult> GetStats()
+```
+
+Respuesta exitosa:
+
+```http
+200 OK
+```
+
+```json
+{
+  "success": true,
+  "message": "Operación exitosa",
+  "data": {
+    "totalProducts": 200,
+    "activeProducts": 180,
+    "inactiveProducts": 20
+  }
+}
+```
+
+Reglas de calculo:
+
+- `totalProducts`: total de filas en `Products`.
+- `activeProducts`: productos con `IsActive == true`.
+- `inactiveProducts`: productos con `IsActive != true`, por lo tanto incluye `false` y `null`.
+
+### 5.5 Obtener producto por ID
 
 ```http
 GET /api/Products/{id}
@@ -697,7 +893,7 @@ Errores comunes:
 - `400 Bad Request` automatico de model binding si `id` no puede convertirse a `int`.
 - `500 Internal Server Error` si ocurre una excepcion no controlada.
 
-### 5.4 Subir imagen de producto
+### 5.6 Subir imagen de producto
 
 ```http
 POST /api/uploads/products
@@ -855,7 +1051,7 @@ Error no controlado:
 
 - `500 Internal Server Error` si falla la escritura fisica del archivo, permisos del servidor, disco lleno u otra excepcion de IO.
 
-### 5.5 Crear producto
+### 5.7 Crear producto
 
 ```http
 POST /api/Products
@@ -865,7 +1061,14 @@ Metodo del controlador:
 
 ```csharp
 [HttpPost]
+[Authorize]
 public async Task<IActionResult> Create(CreateProductDto dto)
+```
+
+Requiere autenticacion:
+
+```http
+Authorization: Bearer {jwt}
 ```
 
 Parametros:
@@ -881,7 +1084,6 @@ Body JSON esperado:
   "linePresentationId": 1,
   "flavorId": 2,
   "productName": "Helado Fresa 1L",
-  "createdBy": 1,
   "imageUrl": "https://example.com/productos/helado-fresa-1l.png",
   "minimumStock": 10
 }
@@ -969,7 +1171,6 @@ Error de validacion por Data Annotations:
 
 Errores no controlados posibles:
 
-- `500 Internal Server Error` si `CreatedBy` no existe y SQL Server rechaza la FK.
 - `500 Internal Server Error` si ocurre cualquier error EF/SQL Server.
 
 Ejemplo de respuesta 500 emitida por `ExceptionMiddleware`:
@@ -982,7 +1183,7 @@ Ejemplo de respuesta 500 emitida por `ExceptionMiddleware`:
 }
 ```
 
-### 5.6 Actualizar producto completo
+### 5.8 Actualizar producto completo
 
 ```http
 PUT /api/Products/{id}
@@ -994,7 +1195,14 @@ Metodo del controlador:
 
 ```csharp
 [HttpPut("{id}")]
+[Authorize]
 public async Task<IActionResult> Update(int id, UpdateProductDto dto)
+```
+
+Requiere autenticacion:
+
+```http
+Authorization: Bearer {jwt}
 ```
 
 Parametros:
@@ -1104,7 +1312,7 @@ Errores no controlados:
 
 - `500 Internal Server Error` si EF/SQL Server falla al guardar.
 
-### 5.7 Actualizar producto parcialmente
+### 5.9 Actualizar producto parcialmente
 
 ```http
 PATCH /api/Products/{id}
@@ -1116,7 +1324,14 @@ Metodo del controlador:
 
 ```csharp
 [HttpPatch("{id}")]
+[Authorize]
 public async Task<IActionResult> Patch(int id, PatchProductDto dto)
+```
+
+Requiere autenticacion:
+
+```http
+Authorization: Bearer {jwt}
 ```
 
 Parametros:
@@ -1233,7 +1448,7 @@ Errores no controlados:
 
 - `500 Internal Server Error` si EF/SQL Server falla al guardar.
 
-### 5.8 Eliminar producto
+### 5.10 Eliminar producto
 
 ```http
 DELETE /api/Products/{id}
@@ -1243,7 +1458,14 @@ Metodo del controlador:
 
 ```csharp
 [HttpDelete("{id}")]
+[Authorize]
 public async Task<IActionResult> Delete(int id)
+```
+
+Requiere autenticacion:
+
+```http
+Authorization: Bearer {jwt}
 ```
 
 Parametros:
@@ -1358,31 +1580,27 @@ Authorization: Bearer {jwt}
 
 ### 6.2 Estado real de seguridad en `ProductsController`
 
-`ProductsController` no declara:
-
-- `[Authorize]` en la clase.
-- `[Authorize]` en `GET`, `POST`, `PATCH` o `DELETE`.
-- Roles especificos.
-- Politicas especificas.
-
-Por lo tanto, en el codigo actual:
+`ProductsController` protege solamente las operaciones que modifican datos. Las consultas siguen publicas.
 
 | Endpoint | Requiere token Bearer JWT | Roles requeridos |
 |---|---:|---|
 | `GET /api/Products` | No | Ninguno |
 | `GET /api/Products/catalog` | No | Ninguno |
+| `GET /api/Products/by-line-presentation` | No | Ninguno |
+| `GET /api/Products/stats` | No | Ninguno |
 | `GET /api/Products/{id}` | No | Ninguno |
 | `POST /api/uploads/products` | No | Ninguno |
-| `POST /api/Products` | No | Ninguno |
-| `PUT /api/Products/{id}` | No | Ninguno |
-| `PATCH /api/Products/{id}` | No | Ninguno |
-| `DELETE /api/Products/{id}` | No | Ninguno |
+| `POST /api/Products` | Si | Ninguno |
+| `PUT /api/Products/{id}` | Si | Ninguno |
+| `PATCH /api/Products/{id}` | Si | Ninguno |
+| `DELETE /api/Products/{id}` | Si | Ninguno |
 
 Recomendacion de integracion:
 
-- El front-end puede enviar `Authorization: Bearer <token>` si ya maneja sesion, pero estos endpoints no lo exigen actualmente.
-- No debe depender de errores `401/403` para productos mientras no se agregue `[Authorize]`.
-- Si el backend cambia y agrega `[Authorize]`, el formato esperado sera JWT Bearer en el header `Authorization`.
+- El front-end debe enviar `Authorization: Bearer <token>` para crear, editar o eliminar productos.
+- Si no se envia token en endpoints protegidos, la API responde `401 Unauthorized`.
+- Si en el futuro se agregan roles a Products, un token valido sin permisos respondera `403 Forbidden`.
+- La documentacion completa de JWT, claims y auditoria esta en `DOCUMENTACION_AUTORIZACION_JWT.md`.
 
 ## 7. Mapa TypeScript completo recomendado
 
@@ -1427,6 +1645,22 @@ export interface ProductCatalogDto {
   retailPrice: number | null;
 }
 
+export interface ProductSelectionDto {
+  productId: number;
+  productName: string;
+  linePresentationId: number;
+  lineName: string;
+  presentationName: string;
+  flavorId: number;
+  flavorName: string;
+}
+
+export interface ProductStatsDto {
+  totalProducts: number;
+  activeProducts: number;
+  inactiveProducts: number;
+}
+
 export interface ProductImageUploadResponseDto {
   imageUrl: string;
 }
@@ -1435,7 +1669,6 @@ export interface CreateProductRequest {
   linePresentationId: number;
   flavorId: number;
   productName: string;
-  createdBy: number;
   imageUrl?: string | null;
   minimumStock: number;
 }
@@ -1465,6 +1698,7 @@ export interface ProductListQuery {
 
 export interface ProductCatalogQuery extends ProductListQuery {
   lineId?: number;
+  presentationId?: number;
   flavorId?: number;
   search?: string;
   active?: boolean;
@@ -1473,6 +1707,8 @@ export interface ProductCatalogQuery extends ProductListQuery {
 export type ProductResponse = ApiResponse<ProductDto>;
 export type ProductListResponse = ApiResponse<PagedResponse<ProductDto>>;
 export type ProductCatalogResponse = ApiResponse<PagedResponse<ProductCatalogDto>>;
+export type ProductSelectionResponse = ApiResponse<ProductSelectionDto[]>;
+export type ProductStatsResponse = ApiResponse<ProductStatsDto>;
 export type ProductImageUploadResponse = ApiResponse<ProductImageUploadResponseDto>;
 export type ProductMutationResponse = ApiResponse<null>;
 export type ValidationErrorResponse = ApiResponse<string[]>;
@@ -1505,7 +1741,7 @@ Muestra datos basicos y IDs necesarios para editar:
 Usar:
 
 ```http
-GET /api/Products/catalog?lineId={lineId}&flavorId={flavorId}&search={search}&active={active}&page={page}&pageSize={pageSize}
+GET /api/Products/catalog?lineId={lineId}&presentationId={presentationId}&flavorId={flavorId}&search={search}&active={active}&page={page}&pageSize={pageSize}
 ```
 
 Muestra datos listos para UI:
@@ -1516,19 +1752,72 @@ Muestra datos listos para UI:
 - Precio mayoreo.
 - Precio detalle.
 
+Filtros disponibles:
+
+- `lineId`: filtra por linea.
+- `presentationId`: filtra por presentacion.
+- `flavorId`: filtra por sabor.
+- `search`: busca por nombre del producto.
+- `active`: filtra activos/inactivos.
+
 No expone `linePresentationId` ni `flavorId`; para editar desde una tarjeta de catalogo, el front-end necesitara llamar tambien a:
 
 ```http
 GET /api/Products/{id}
 ```
 
-### 8.3 Crear producto
+### 8.3 Productos para Restock y ventas por LinePresentation
+
+Usar cuando el usuario ya selecciono linea y presentacion, y el frontend ya conoce el `linePresentationId`.
+
+```http
+GET /api/Products/by-line-presentation?linePresentationId={linePresentationId}
+```
+
+Este endpoint devuelve solo productos activos de esa combinacion, con datos listos para select:
+
+```ts
+const result = await getProductsByLinePresentation(selectedLinePresentationId);
+const productOptions = result.data ?? [];
+```
+
+Cada opcion tiene:
+
+- `productId`: valor a enviar en Restock/ventas cuando se elige producto.
+- `productName`: texto principal del producto.
+- `flavorId` y `flavorName`: utiles para mostrar o agrupar por sabor.
+- `lineName` y `presentationName`: contexto visual.
+
+Si no hay productos activos, la API devuelve `success: true` y `data: []`.
+
+### 8.4 Estadisticas de productos
+
+Usar en dashboards o tarjetas de resumen:
+
+```http
+GET /api/Products/stats
+```
+
+Ejemplo de uso:
+
+```ts
+const statsResult = await getProductStats();
+const stats = statsResult.data;
+```
+
+Campos:
+
+- `totalProducts`
+- `activeProducts`
+- `inactiveProducts`
+
+### 8.5 Crear producto
 
 El front-end debe obtener previamente:
 
 - `linePresentationId` desde el modulo/endpoints de line-presentations.
 - `flavorId` desde el modulo/endpoints de flavors.
-- `createdBy` desde el usuario autenticado o estado de sesion.
+- JWT del usuario autenticado para enviarlo en el header `Authorization`.
 
 Flujo recomendado cuando el usuario selecciona una imagen:
 
@@ -1536,7 +1825,7 @@ Flujo recomendado cuando el usuario selecciona una imagen:
 2. El frontend envia ese archivo a `POST /api/uploads/products` usando `FormData`.
 3. La API devuelve `data.imageUrl`, por ejemplo `/uploads/products/a13c2cbe-f0b5-4d6d-8f2e-123456789abc.jpg`.
 4. El frontend asigna ese valor al campo `imageUrl` del `CreateProductRequest`.
-5. El frontend crea el producto con `POST /api/Products`.
+5. El frontend crea el producto con `POST /api/Products` enviando `Authorization: Bearer {jwt}`.
 
 Validaciones recomendadas antes de enviar:
 
@@ -1544,7 +1833,7 @@ Validaciones recomendadas antes de enviar:
 - `imageUrl`: no se escribe manualmente; debe venir de `POST /api/uploads/products`.
 - Archivo de imagen: permitir en UI solo `.jpg`, `.jpeg`, `.png`, `.webp`.
 - `minimumStock`: entero mayor o igual a `0`.
-- `linePresentationId`, `flavorId`, `createdBy`: enteros positivos.
+- `linePresentationId` y `flavorId`: enteros positivos.
 
 Ejemplo de flujo completo:
 
@@ -1559,7 +1848,6 @@ const payload: CreateProductRequest = {
   linePresentationId: Number(form.linePresentationId),
   flavorId: Number(form.flavorId),
   productName: form.productName,
-  createdBy: currentUser.id,
   imageUrl: uploadResult.data.imageUrl,
   minimumStock: Number(form.minimumStock)
 };
@@ -1567,7 +1855,7 @@ const payload: CreateProductRequest = {
 const createResult = await createProduct(payload);
 ```
 
-### 8.4 Editar producto
+### 8.6 Editar producto
 
 Usar `PUT` cuando el formulario de edicion envia el producto completo. Usar `PATCH` solo para cambios puntuales.
 
@@ -1618,7 +1906,7 @@ Para cambiar nombre, sabor o linea-presentacion, considerar que el backend valid
 ProductName + LinePresentationId + FlavorId
 ```
 
-### 8.5 Eliminar producto
+### 8.7 Eliminar producto
 
 La eliminacion es fisica (`_context.Products.Remove(product)`), no soft delete.
 
@@ -1652,6 +1940,8 @@ PATCH /api/Products/{id}
 | Producto duplicado | `POST`, `PUT`, `PATCH` | 400 | `ApiResponse<T>.Fail(...)` con `data: null`. |
 | Producto con lotes | `DELETE` | 400 | `ApiResponse<object>.Fail(...)` con `data: null`. |
 | Producto con precios activos | `DELETE` | 400 | `ApiResponse<object>.Fail(...)` con `data: null`. |
+| Token ausente, expirado o invalido | `POST`, `PUT`, `PATCH`, `DELETE` | 401 | Respuesta de ASP.NET Core por `[Authorize]`. |
+| Token valido sin rol requerido futuro | `POST`, `PUT`, `PATCH`, `DELETE` | 403 | Aplica si luego se agregan roles/politicas. |
 | Archivo de imagen nulo | `POST /api/uploads/products` | 400 | `ApiResponse<object>.Fail("El archivo es obligatorio")`. |
 | Archivo de imagen vacio | `POST /api/uploads/products` | 400 | `ApiResponse<object>.Fail("El archivo no puede estar vacío")`. |
 | Extension de imagen no permitida | `POST /api/uploads/products` | 400 | `ApiResponse<object>.Fail("Extensión de imagen no permitida")`. |
@@ -1665,6 +1955,13 @@ PATCH /api/Products/{id}
 ```ts
 const API_BASE = "/api/Products";
 const PRODUCT_UPLOADS_BASE = "/api/uploads/products";
+
+function authHeaders(token: string): HeadersInit {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
+  };
+}
 
 export async function uploadProductImage(file: File) {
   const formData = new FormData();
@@ -1690,6 +1987,7 @@ export async function getProducts(query: ProductListQuery = {}) {
 export async function getProductCatalog(query: ProductCatalogQuery = {}) {
   const params = new URLSearchParams();
   if (query.lineId !== undefined) params.set("lineId", String(query.lineId));
+  if (query.presentationId !== undefined) params.set("presentationId", String(query.presentationId));
   if (query.flavorId !== undefined) params.set("flavorId", String(query.flavorId));
   if (query.search) params.set("search", query.search);
   if (query.active !== undefined) params.set("active", String(query.active));
@@ -1700,41 +1998,57 @@ export async function getProductCatalog(query: ProductCatalogQuery = {}) {
   return (await res.json()) as ProductCatalogResponse;
 }
 
+export async function getProductsByLinePresentation(linePresentationId: number) {
+  const params = new URLSearchParams();
+  params.set("linePresentationId", String(linePresentationId));
+
+  const res = await fetch(`${API_BASE}/by-line-presentation?${params.toString()}`);
+  return (await res.json()) as ProductSelectionResponse;
+}
+
+export async function getProductStats() {
+  const res = await fetch(`${API_BASE}/stats`);
+  return (await res.json()) as ProductStatsResponse;
+}
+
 export async function getProductById(id: number) {
   const res = await fetch(`${API_BASE}/${id}`);
   return (await res.json()) as ProductResponse;
 }
 
-export async function createProduct(payload: CreateProductRequest) {
+export async function createProduct(payload: CreateProductRequest, token: string) {
   const res = await fetch(API_BASE, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(token),
     body: JSON.stringify(payload)
   });
   return (await res.json()) as ProductResponse | ValidationErrorResponse;
 }
 
-export async function updateProduct(id: number, payload: UpdateProductRequest) {
+export async function updateProduct(id: number, payload: UpdateProductRequest, token: string) {
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(token),
     body: JSON.stringify(payload)
   });
   return (await res.json()) as ProductMutationResponse | ValidationErrorResponse;
 }
 
-export async function patchProduct(id: number, payload: PatchProductRequest) {
+export async function patchProduct(id: number, payload: PatchProductRequest, token: string) {
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(token),
     body: JSON.stringify(payload)
   });
   return (await res.json()) as ProductMutationResponse | ValidationErrorResponse;
 }
 
-export async function deleteProduct(id: number) {
+export async function deleteProduct(id: number, token: string) {
   const res = await fetch(`${API_BASE}/${id}`, {
-    method: "DELETE"
+    method: "DELETE",
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
   });
   return (await res.json()) as ProductMutationResponse;
 }
@@ -1839,12 +2153,12 @@ function getApiErrorMessage(response: unknown): string {
 - Usar `GET /api/Products/catalog` para vistas publicas o tarjetas enriquecidas.
 - Usar `GET /api/Products` para administracion donde se necesitan IDs.
 - Usar `GET /api/Products/{id}` antes de abrir formulario de edicion si se viene desde catalogo.
-- Crear con `POST /api/Products`.
-- Editar formulario completo con `PUT /api/Products/{id}`.
-- Editar cambios puntuales con `PATCH /api/Products/{id}`.
-- Eliminar con `DELETE /api/Products/{id}` y mostrar mensajes de bloqueo por lotes/precios activos.
+- Crear con `POST /api/Products` enviando `Authorization: Bearer {jwt}`.
+- Editar formulario completo con `PUT /api/Products/{id}` enviando `Authorization: Bearer {jwt}`.
+- Editar cambios puntuales con `PATCH /api/Products/{id}` enviando `Authorization: Bearer {jwt}`.
+- Eliminar con `DELETE /api/Products/{id}` enviando `Authorization: Bearer {jwt}` y mostrar mensajes de bloqueo por lotes/precios activos.
 - Validar en cliente: nombre requerido/max 150, archivo permitido, stock minimo >= 0, IDs positivos.
-- No asumir que productos requiere JWT actualmente, pero mantener soporte para header Bearer si la app lo usa globalmente.
+- No enviar `createdBy` al crear productos; la API lo obtiene del token JWT.
 
 ## 12. Buenas practicas para reemplazo y eliminacion futura de imagenes
 

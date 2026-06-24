@@ -13,15 +13,18 @@ namespace HerreraSystem.Application.Services
         private readonly IProductRepository _productRepository;
         private readonly IFlavorRepository _flavorRepository;
         private readonly ILinePresentationRepository _linePresentationRepository;
+        private readonly ICurrentUserService _currentUserService;
 
         public ProductService(
             IProductRepository productRepository,
             IFlavorRepository flavorRepository,
-            ILinePresentationRepository linePresentationRepository)
+            ILinePresentationRepository linePresentationRepository,
+            ICurrentUserService currentUserService)
         {
             _productRepository = productRepository;
             _flavorRepository = flavorRepository;
             _linePresentationRepository = linePresentationRepository;
+            _currentUserService = currentUserService;
         }
 
         // ── Consultas ────────────────────────────────────────────────────────
@@ -43,6 +46,7 @@ namespace HerreraSystem.Application.Services
 
         public async Task<PagedResponse<ProductCatalogDto>> GetCatalogAsync(
         int? lineId,
+        int? presentationId,
         int? flavorId,
         string? search,
         bool? active,
@@ -50,16 +54,38 @@ namespace HerreraSystem.Application.Services
         {
             return await _productRepository.GetCatalogAsync(
                 lineId,
+                presentationId,
                 flavorId,
                 search,
                 active,
                 paginationParams);
         }
 
+        public async Task<ServiceResult<List<ProductSelectionDto>>> GetByLinePresentationAsync(
+            int linePresentationId)
+        {
+            if (linePresentationId <= 0)
+                return ServiceResult<List<ProductSelectionDto>>
+                    .Fail("El LinePresentationId debe ser mayor que cero");
+
+            var products = await _productRepository
+                .GetByLinePresentationAsync(linePresentationId);
+
+            return ServiceResult<List<ProductSelectionDto>>.Ok(products);
+        }
+
+        public async Task<ProductStatsDto> GetStatsAsync()
+        {
+            return await _productRepository.GetStatsAsync();
+        }
+
         // ── Operaciones con lógica de negocio ────────────────────────────────
 
         public async Task<ServiceResult<ProductDto>> CreateAsync(CreateProductDto dto)
         {
+            if (!_currentUserService.IsAuthenticated || _currentUserService.CurrentUserId is null)
+                return ServiceResult<ProductDto>.Fail("No se pudo identificar el usuario autenticado");
+
             var flavor = await _flavorRepository.GetByIdAsync(dto.FlavorId);
             if (flavor is null)
                 return ServiceResult<ProductDto>.Fail(
@@ -77,7 +103,9 @@ namespace HerreraSystem.Application.Services
                 return ServiceResult<ProductDto>.Fail(
                     $"Ya existe un producto '{dto.ProductName}' con esa línea y sabor");
 
-            var created = await _productRepository.CreateAsync(dto);
+            var created = await _productRepository.CreateAsync(
+                dto,
+                _currentUserService.CurrentUserId.Value);
             return ServiceResult<ProductDto>.Ok(created);
         }
 

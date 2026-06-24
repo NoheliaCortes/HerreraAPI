@@ -19,6 +19,7 @@ namespace HerreraSystem.Application.Services
         private readonly IBatchLocationRepository _batchLocationRepository;
         private readonly IInventoryMovementRepository _inventoryMovementRepository;
         private readonly IMovementDetailRepository _movementDetailRepository;
+        private readonly ICurrentUserService _currentUserService;
 
         public RestockService(
             IUnitOfWork unitOfWork,
@@ -27,7 +28,8 @@ namespace HerreraSystem.Application.Services
             IBatchRepository batchRepository,
             IBatchLocationRepository batchLocationRepository,
             IInventoryMovementRepository inventoryMovementRepository,
-            IMovementDetailRepository movementDetailRepository)
+            IMovementDetailRepository movementDetailRepository,
+            ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
             _productRepository = productRepository;
@@ -36,11 +38,18 @@ namespace HerreraSystem.Application.Services
             _batchLocationRepository = batchLocationRepository;
             _inventoryMovementRepository = inventoryMovementRepository;
             _movementDetailRepository = movementDetailRepository;
+            _currentUserService = currentUserService;
         }
 
         public async Task<ServiceResult<RestockResponseDto>> CreateRestockAsync(CreateRestockDto dto)
         {
             // ── VALIDACIONES (fuera de la transacción) ───────────────────────
+            if (!_currentUserService.IsAuthenticated || _currentUserService.CurrentUserId is null)
+                return ServiceResult<RestockResponseDto>.Fail(
+                    "No se pudo identificar el usuario autenticado");
+
+            var currentUserId = _currentUserService.CurrentUserId.Value;
+
             if (!dto.Batches.Any())
                 return ServiceResult<RestockResponseDto>.Fail(
                     "Debe incluir al menos un lote");
@@ -76,7 +85,7 @@ namespace HerreraSystem.Application.Services
                     OrderId = null,
                     MovementDate = DateTime.UtcNow,
                     Notes = dto.Notes,
-                    CreatedBy = dto.CreatedBy,
+                    CreatedBy = currentUserId,
                     IsActive = true
                 });
 
@@ -84,7 +93,7 @@ namespace HerreraSystem.Application.Services
                 var restock = await _restockRepository.CreateAsync(new Restock
                 {
                     RestockDate = DateTime.UtcNow,
-                    CreatedBy = dto.CreatedBy,
+                    CreatedBy = currentUserId,
                     RestockCode = restockCode
                 });
 
@@ -125,7 +134,7 @@ namespace HerreraSystem.Application.Services
                         Quantity = batchDto.Quantity,
                         UnitPrice = null,
                         UnitCost = batchDto.UnitProductionCost,
-                        CreatedBy = dto.CreatedBy,
+                        CreatedBy = currentUserId,
                         CreatedAt = DateTime.UtcNow
                     });
 

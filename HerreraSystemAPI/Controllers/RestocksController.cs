@@ -1,7 +1,7 @@
-﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.RestockDtos;
 using HerreraSystem.Application.Interfaces.Services;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HerreraSystem.API.Controllers
@@ -46,6 +46,7 @@ namespace HerreraSystem.API.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Create(CreateRestockDto dto)
         {
             var result = await _restockService.CreateRestockAsync(dto);
