@@ -62,14 +62,14 @@ namespace HerreraSystem.Infrastructure.Repositories
             };
         }
 
-        public async Task<ProductDto> CreateAsync(CreateProductDto dto)
+        public async Task<ProductDto> CreateAsync(CreateProductDto dto, int createdBy)
         {
             var product = new Product
             {
                 LinePresentationId = dto.LinePresentationId,
                 FlavorId = dto.FlavorId,
                 ProductName = dto.ProductName,
-                CreatedBy = dto.CreatedBy,
+                CreatedBy = createdBy,
                 ImageUrl = dto.ImageUrl,
                 MinimumStock = dto.MinimumStock,
                 IsActive = true,
@@ -143,6 +143,7 @@ namespace HerreraSystem.Infrastructure.Repositories
 
         public async Task<PagedResponse<ProductCatalogDto>> GetCatalogAsync(
         int? lineId,
+        int? presentationId,
         int? flavorId,
         string? search,
         bool? active,
@@ -155,6 +156,10 @@ namespace HerreraSystem.Infrastructure.Repositories
             if (lineId.HasValue)
                 query = query.Where(p =>
                     p.LinePresentation.LineId == lineId.Value);
+
+            if (presentationId.HasValue)
+                query = query.Where(p =>
+                    p.LinePresentation.PresentationId == presentationId.Value);
 
             if (flavorId.HasValue)
                 query = query.Where(p =>
@@ -209,6 +214,45 @@ namespace HerreraSystem.Infrastructure.Repositories
 
             return await catalogQuery
                 .ToPagedResponseAsync(paginationParams);
+        }
+
+        public async Task<List<ProductSelectionDto>> GetByLinePresentationAsync(
+            int linePresentationId)
+        {
+            return await _context.Products
+                .AsNoTracking()
+                .Where(p =>
+                    p.LinePresentationId == linePresentationId &&
+                    p.IsActive == true)
+                .OrderBy(p => p.Flavor.FlavorName)
+                .ThenBy(p => p.ProductName)
+                .Select(p => new ProductSelectionDto
+                {
+                    ProductId = p.Id,
+                    ProductName = p.ProductName,
+                    LinePresentationId = p.LinePresentationId,
+                    LineName = p.LinePresentation.Line.LineName,
+                    PresentationName = p.LinePresentation.Presentation.PresentationName,
+                    FlavorId = p.FlavorId,
+                    FlavorName = p.Flavor.FlavorName
+                })
+                .ToListAsync();
+        }
+
+        public async Task<ProductStatsDto> GetStatsAsync()
+        {
+            var totalProducts = await _context.Products.CountAsync();
+            var activeProducts = await _context.Products
+                .CountAsync(p => p.IsActive == true);
+            var inactiveProducts = await _context.Products
+                .CountAsync(p => p.IsActive != true);
+
+            return new ProductStatsDto
+            {
+                TotalProducts = totalProducts,
+                ActiveProducts = activeProducts,
+                InactiveProducts = inactiveProducts
+            };
         }
 
         public async Task<bool> ExistsAsync(
