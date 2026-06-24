@@ -19,5 +19,6 @@ namespace HerreraSystem.Application.DTOs.FlavorDtos
         [RegularExpression("^#([A-Fa-f0-9]{6})$",
             ErrorMessage = "El color debe ser un código HEX válido")]
         public string? FlavorColor { get; set; }
+
     }
 }

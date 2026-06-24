@@ -10,6 +10,7 @@ namespace HerreraSystem.Application.DTOs.LineDtos
         [Required(ErrorMessage = "El nombre de la línea es obligatorio")]
         [StringLength(100, ErrorMessage = "El nombre no puede exceder 100 caracteres")]
         public string LineName { get; set; } = null!;
+        public bool? IsActive { get; set; }
 
     }
 }

@@ -6,12 +6,12 @@ namespace HerreraSystem.Application.DTOs.FlavorDtos
 {
     public class FlavorDto
     {
-        // FlavorDto.cs
-         public int Id { get; set; }
-            public string FlavorName { get; set; } = null!;
-            public bool? IsActive { get; set; }
-            public string? ImageUrl { get; set; }
-            public string? FlavorColor { get; set; }
-        
+
+        public int Id { get; set; }
+        public string FlavorName { get; set; } = null!;
+        public bool? IsActive { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? FlavorColor { get; set; }
+
     }
 }

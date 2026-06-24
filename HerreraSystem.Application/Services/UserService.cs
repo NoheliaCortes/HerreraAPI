@@ -50,7 +50,7 @@ public class UserService : IUserService
             FirstName = user.FirstName,
             LastName = user.LastName,
             IsActive = user.IsActive ?? false,
-            Roles = user.UserRoles.Select(ur => ur.Role.RoleName).ToList()
+            Roles = user.UserRoles.Select(ur => ur.Role?.RoleName ?? "Sin Rol").ToList()
         };
 
         return ServiceResult<UserDto>.Ok(userDto);

@@ -9,7 +9,8 @@ namespace HerreraSystem.Application.DTOs.PresentationDtos
     {
         [Required(ErrorMessage = "El nombre de la presentación es obligatorio")]
         [StringLength(100, ErrorMessage = "El nombre no puede exceder 100 caracteres")]
-        public string PresentationName { get; set; } = null!;
+        public string PresentationName { get; set; } = string.Empty;
+        public bool? IsActive { get; set; }
 
     }
 }

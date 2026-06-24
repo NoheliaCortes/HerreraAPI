@@ -46,7 +46,7 @@ public class FlavorsController : ControllerBase
 
     [HttpPost]
     public async Task<IActionResult> Create(
-    CreateFlavorDto dto)
+      [FromForm] CreateFlavorDto dto)
     {
         var result = await _flavorService
             .CreateAsync(dto);
@@ -67,7 +67,7 @@ public class FlavorsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(
      int id,
-     UpdateFlavorDto dto)
+     [FromForm] UpdateFlavorDto dto) 
     {
         var result = await _flavorService
             .UpdateAsync(id, dto);
