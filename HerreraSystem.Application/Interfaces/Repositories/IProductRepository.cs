@@ -12,16 +12,19 @@ namespace HerreraSystem.Application.Interfaces.Repositories
         Task<PagedResponse<ProductDto>> GetAllAsync(
         PaginationParams paginationParams);
         Task<ProductDto?> GetByIdAsync(int id);
-        Task<ProductDto> CreateAsync(CreateProductDto dto);
+        Task<ProductDto> CreateAsync(CreateProductDto dto, int createdBy);
         Task<bool> UpdateAsync(int id, UpdateProductDto dto);
         Task<bool> PatchAsync(int id, PatchProductDto dto);
         Task<bool> DeleteAsync(int id);
         Task<PagedResponse<ProductCatalogDto>> GetCatalogAsync(
         int? lineId,
+        int? presentationId,
         int? flavorId,
         string? search,
         bool? active,
         PaginationParams paginationParams);
+        Task<List<ProductSelectionDto>> GetByLinePresentationAsync(int linePresentationId);
+        Task<ProductStatsDto> GetStatsAsync();
         // Métodos de consulta para validaciones en el Service
         Task<bool> ExistsAsync(string productName, int linePresentationId, int flavorId, int? excludeId = null);
         Task<bool> HasBatchesAsync(int productId);

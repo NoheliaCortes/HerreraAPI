@@ -2,6 +2,7 @@
 using HerreraSystem.Application.DTOs.ProductDtos;
 using HerreraSystem.Application.Interfaces.Repositories;
 using HerreraSystem.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,6 +33,7 @@ namespace HerreraSystem.API.Controllers
         [HttpGet("catalog")]
         public async Task<IActionResult> GetCatalog(
     [FromQuery] int? lineId,
+    [FromQuery] int? presentationId,
     [FromQuery] int? flavorId,
     [FromQuery] string? search,
     [FromQuery] bool? active,
@@ -39,6 +41,7 @@ namespace HerreraSystem.API.Controllers
         {
             var data = await _productService.GetCatalogAsync(
                 lineId,
+                presentationId,
                 flavorId,
                 search,
                 active,
@@ -47,6 +50,31 @@ namespace HerreraSystem.API.Controllers
             return Ok(
                 ApiResponse<PagedResponse<ProductCatalogDto>>
                     .Ok(data));
+        }
+
+        [HttpGet("by-line-presentation")]
+        public async Task<IActionResult> GetByLinePresentation(
+            [FromQuery] int linePresentationId)
+        {
+            var result = await _productService
+                .GetByLinePresentationAsync(linePresentationId);
+
+            if (!result.Success)
+                return BadRequest(
+                    ApiResponse<object>.Fail(result.ErrorMessage!));
+
+            return Ok(
+                ApiResponse<List<ProductSelectionDto>>
+                    .Ok(result.Data!));
+        }
+
+        [HttpGet("stats")]
+        public async Task<IActionResult> GetStats()
+        {
+            var data = await _productService.GetStatsAsync();
+
+            return Ok(
+                ApiResponse<ProductStatsDto>.Ok(data));
         }
 
         [HttpGet("{id}")]
@@ -60,6 +88,7 @@ namespace HerreraSystem.API.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Create(CreateProductDto dto)
         {
             var result = await _productService.CreateAsync(dto);
@@ -72,6 +101,7 @@ namespace HerreraSystem.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> Update(int id, UpdateProductDto dto)
         {
             var result = await _productService.UpdateAsync(id, dto);
@@ -87,6 +117,7 @@ namespace HerreraSystem.API.Controllers
         }
 
         [HttpPatch("{id}")]
+        [Authorize]
         public async Task<IActionResult> Patch(int id, PatchProductDto dto)
         {
             var result = await _productService.PatchAsync(id, dto);
@@ -102,6 +133,7 @@ namespace HerreraSystem.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _productService.DeleteAsync(id);

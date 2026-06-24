@@ -17,9 +17,6 @@ namespace HerreraSystem.Application.DTOs.ProductDtos
         [StringLength(150, ErrorMessage = "El nombre no puede exceder 150 caracteres")]
         public string ProductName { get; set; } = null!;
 
-        [Required(ErrorMessage = "El CreatedBy es obligatorio")]
-        public int CreatedBy { get; set; }
-
         [Url(ErrorMessage = "La URL de la imagen no es válida")]
         public string? ImageUrl { get; set; }
 
