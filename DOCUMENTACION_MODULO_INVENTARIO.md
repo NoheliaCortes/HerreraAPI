@@ -366,6 +366,7 @@ Ids de `SaleType` confirmados:
 |---|---:|---:|---:|---|
 | `ProductId` | `int` | `number` | No | `Product.Id` |
 | `ProductName` | `string` | `string` | No | `Product.ProductName` |
+| `ImageUrl` | `string?` | `string \| null` | Si | `Product.ImageUrl`. URL de imagen del producto. |
 | `LineName` | `string` | `string` | No | `Product.LinePresentation.Line.LineName` |
 | `PresentationName` | `string` | `string` | No | `Product.LinePresentation.Presentation.PresentationName` |
 | `FlavorName` | `string` | `string` | No | `Product.Flavor.FlavorName` |
@@ -1368,6 +1369,7 @@ export interface ProductCatalogDto {
 export interface InventoryProductDto {
   productId: number;
   productName: string;
+  imageUrl: string | null;
   lineName: string;
   presentationName: string;
   flavorName: string;

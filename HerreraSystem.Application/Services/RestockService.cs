@@ -157,5 +157,14 @@ namespace HerreraSystem.Application.Services
                 throw;
             }
         }
+
+        public async Task<PagedResponse<RestockListItemDto>> GetAllAsync(RestockQueryParams queryParams)
+            => await _restockRepository.GetAllAsync(queryParams);
+
+        public async Task<RestockDetailDto?> GetDetailAsync(int id)
+            => await _restockRepository.GetDetailAsync(id);
+
+        public async Task<RestockStatisticsDto> GetStatisticsAsync()
+            => await _restockRepository.GetStatisticsAsync();
     }
 }
