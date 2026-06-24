@@ -17,6 +17,34 @@ namespace HerreraSystem.API.Controllers
             _restockService = restockService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] RestockQueryParams queryParams)
+        {
+            var data = await _restockService.GetAllAsync(queryParams);
+
+            return Ok(ApiResponse<PagedResponse<RestockListItemDto>>.Ok(data));
+        }
+
+        [HttpGet("{id}/detail")]
+        public async Task<IActionResult> GetDetail(int id)
+        {
+            var data = await _restockService.GetDetailAsync(id);
+
+            if (data is null)
+                return NotFound(
+                    ApiResponse<RestockDetailDto>.Fail($"Restock con Id {id} no encontrado"));
+
+            return Ok(ApiResponse<RestockDetailDto>.Ok(data));
+        }
+
+        [HttpGet("statistics")]
+        public async Task<IActionResult> GetStatistics()
+        {
+            var data = await _restockService.GetStatisticsAsync();
+
+            return Ok(ApiResponse<RestockStatisticsDto>.Ok(data));
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create(CreateRestockDto dto)
         {
