@@ -7,9 +7,6 @@ namespace HerreraSystem.Application.DTOs.RestockDtos
 {
     public class CreateRestockDto
     {
-        [Required(ErrorMessage = "El CreatedBy es obligatorio")]
-        public int CreatedBy { get; set; }
-
         public string? Notes { get; set; }
 
         [Required]

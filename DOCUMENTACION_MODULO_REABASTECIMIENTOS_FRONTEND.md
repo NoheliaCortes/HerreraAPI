@@ -35,12 +35,12 @@ ASP.NET Core no distingue mayusculas/minusculas en rutas por defecto, por lo que
 
 Endpoints disponibles:
 
-| Operacion | Metodo | Ruta | Respuesta |
-|---|---:|---|---|
-| Listar reabastecimientos paginados | GET | `/api/restocks` | `ApiResponse<PagedResponse<RestockListItemDto>>` |
-| Obtener detalle de reabastecimiento | GET | `/api/restocks/{id}/detail` | `ApiResponse<RestockDetailDto>` |
-| Obtener estadisticas del mes actual | GET | `/api/restocks/statistics` | `ApiResponse<RestockStatisticsDto>` |
-| Crear/publicar reabastecimiento | POST | `/api/restocks` | `ApiResponse<RestockResponseDto>` |
+| Operacion | Metodo | Ruta | JWT requerido | Respuesta |
+|---|---:|---|---:|---|
+| Listar reabastecimientos paginados | GET | `/api/restocks` | No | `ApiResponse<PagedResponse<RestockListItemDto>>` |
+| Obtener detalle de reabastecimiento | GET | `/api/restocks/{id}/detail` | No | `ApiResponse<RestockDetailDto>` |
+| Obtener estadisticas del mes actual | GET | `/api/restocks/statistics` | No | `ApiResponse<RestockStatisticsDto>` |
+| Crear/publicar reabastecimiento | POST | `/api/restocks` | Si | `ApiResponse<RestockResponseDto>` |
 
 Estado actual importante:
 
@@ -55,7 +55,9 @@ Estado actual importante:
   - Un `BatchLocation` inicial en ubicacion `1`.
   - Un `MovementDetail` por lote.
 - Las respuestas controladas usan `ApiResponse<T>`.
-- Los endpoints actuales no tienen `[Authorize]`; JWT esta configurado globalmente, pero estas rutas no exigen token por atributo.
+- El endpoint `POST /api/restocks` esta protegido con `[Authorize]`.
+- Los endpoints `GET` de consulta siguen abiertos, igual que el patron actual de Products.
+- El frontend ya no debe enviar `createdBy`; el backend lo obtiene desde el JWT mediante `ICurrentUserService.CurrentUserId`.
 - Las fechas `DateTime` se consumen como string ISO.
 - Las fechas `DateOnly` se consumen como string `YYYY-MM-DD`.
 - Los montos `decimal` se consumen como `number` en TypeScript.
@@ -205,7 +207,7 @@ La eleccion depende de la pantalla y de la informacion visual requerida.
 |---|---:|---|
 | `UserName` | `string` | Campo `userName` en listados y detalle. |
 
-En creacion, el frontend envia `createdBy`. Normalmente debe salir del usuario autenticado o del estado global de sesion.
+En creacion, el frontend no envia `createdBy`. El backend obtiene el usuario desde el token JWT y guarda ese id en `Restock.CreatedBy`.
 
 ### 3.6 `BatchStatus`
 
@@ -227,9 +229,9 @@ Estas entidades no se exponen directamente por los endpoints de Restock, pero se
 
 | Entidad | Registro creado | Regla actual |
 |---|---|---|
-| `InventoryMovement` | 1 por restock | `MovementTypeId = 1`, `MovementDate = DateTime.UtcNow`, `CreatedBy = dto.CreatedBy`, `Notes = dto.Notes`. |
+| `InventoryMovement` | 1 por restock | `MovementTypeId = 1`, `MovementDate = DateTime.UtcNow`, `CreatedBy = CurrentUserId.Value`, `Notes = dto.Notes`. |
 | `BatchLocation` | 1 por lote | `LocationId = 1`, `CurrentStock = quantity`. |
-| `MovementDetail` | 1 por lote | `DestinationLocationId = 1`, `Quantity = quantity`, `UnitCost = unitProductionCost`. |
+| `MovementDetail` | 1 por lote | `DestinationLocationId = 1`, `Quantity = quantity`, `UnitCost = unitProductionCost`, `CreatedBy = CurrentUserId.Value`. |
 
 Esto significa que despues de crear un restock, el inventario queda afectado automaticamente.
 
@@ -370,7 +372,6 @@ POST /api/restocks
 
 ```ts
 export interface CreateRestockRequest {
-  createdBy: number;
   notes?: string | null;
   batches: CreateRestockBatchRequest[];
 }
@@ -391,7 +392,6 @@ Reglas de formulario:
 
 | Campo | Obligatorio | Regla |
 |---|---:|---|
-| `createdBy` | Si | Debe ser el id del usuario que registra. |
 | `notes` | No | Texto libre. |
 | `batches` | Si | Debe incluir al menos un lote. |
 | `productId` | Si | Debe existir en productos. |
@@ -401,9 +401,10 @@ Reglas de formulario:
 
 Advertencia de model binding:
 
-- `createdBy`, `productId` y `quantity` son `int` no-nullable.
+- `productId` y `quantity` son `int` no-nullable.
 - Si el frontend omite alguno, ASP.NET puede bindearlo como `0`; `[Required]` no siempre detecta ausencia en tipos valor.
 - El frontend debe validar explicitamente que sean mayores a `0`.
+- El usuario autenticado no forma parte del body; debe viajar en el header `Authorization: Bearer <token>`.
 
 ### 5.8 Respuesta al crear: `RestockResponseDto`
 
@@ -590,7 +591,6 @@ Request:
 
 ```json
 {
-  "createdBy": 1,
   "notes": "Produccion semanal",
   "batches": [
     {
@@ -772,7 +772,8 @@ Validaciones frontend antes de enviar:
 - `quantity > 0`.
 - `unitProductionCost > 0`.
 - `expirationDate` futura.
-- Evitar enviar `createdBy = 0`.
+- No enviar `createdBy`, `userId`, `registeredBy` ni campos equivalentes de usuario.
+- Enviar `Authorization: Bearer <token>` al crear.
 
 Despues de crear exitosamente:
 
@@ -813,7 +814,8 @@ export async function createRestock(payload: CreateRestockRequest) {
   const response = await fetch(API_BASE, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
     },
     body: JSON.stringify(payload)
   });
@@ -822,7 +824,7 @@ export async function createRestock(payload: CreateRestockRequest) {
 }
 ```
 
-Si el frontend usa autenticacion, agregar:
+Para el `POST /api/restocks`, el header de autenticacion es obligatorio:
 
 ```ts
 headers: {
@@ -831,7 +833,7 @@ headers: {
 }
 ```
 
-Aunque los endpoints no tengan `[Authorize]` actualmente, esto mantiene el cliente listo para un cambio futuro.
+Los endpoints `GET` pueden consumirse sin token en el estado actual del proyecto.
 
 ## 10. Formateo recomendado
 
@@ -957,7 +959,6 @@ export interface RestockStatisticsDto {
 }
 
 export interface CreateRestockRequest {
-  createdBy: number;
   notes?: string | null;
   batches: CreateRestockBatchRequest[];
 }
