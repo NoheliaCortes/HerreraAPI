@@ -57,7 +57,7 @@ namespace HerreraSystem.Infrastructure.Repositories
             var flavor = new Flavor
             {
                 FlavorName = dto.FlavorName,
-                ImageUrl = dto.ImageUrl,
+                ImageUrl = dto.ImageURL,
                 FlavorColor = dto.FlavorColor,
                 IsActive = true
             };

@@ -46,9 +46,11 @@ public class UsersController : ControllerBase
         return Ok(ApiResponse<string>.Ok(result.Data!));
     }
 
-    [HttpPut]
-    public async Task<IActionResult> Update([FromBody] UpdateUserDto dto)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto dto)
     {
+        dto.Id = id; 
+
         var result = await _userService.UpdateAsync(dto);
         if (!result.Success)
             return BadRequest(ApiResponse<string>.Fail(result.ErrorMessage!));
