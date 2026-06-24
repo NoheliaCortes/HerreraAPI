@@ -312,6 +312,7 @@ namespace HerreraSystem.Infrastructure.Repositories
                 {
                     ProductId = p.Id,
                     ProductName = p.ProductName,
+                    ImageUrl = p.ImageUrl,
                     LineName = p.LinePresentation.Line.LineName,
                     PresentationName = p.LinePresentation.Presentation.PresentationName,
                     FlavorName = p.Flavor.FlavorName,
