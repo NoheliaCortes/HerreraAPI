@@ -1,15 +1,10 @@
 using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.SaleDtos;
-using HerreraSystem.Domain.Entities;
 
-namespace HerreraSystem.Application.Interfaces.Repositories
+namespace HerreraSystem.Application.Interfaces.Services
 {
-    public interface ISaleRepository
+    public interface ISaleService
     {
-        Task<Sale> CreateAsync(Sale sale);
-
-        Task<int> CountByYearAsync(int year);
-
         Task<SalesStatsDto> GetStatsAsync();
 
         Task<PagedResponse<SaleListItemDto>> GetAllAsync(SaleQueryParams queryParams);
