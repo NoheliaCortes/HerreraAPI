@@ -1,11 +1,9 @@
-﻿using HerreraSystem.Application.DTOs.PresentationDtos;
+﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.DTOs.PresentationDtos;
+using HerreraSystem.Application.Interfaces.Repositories;
 using HerreraSystem.Domain.Entities;
 using HerreraSystem.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
-using HerreraSystem.Application.Interfaces.Repositories;
 
 namespace HerreraSystem.Infrastructure.Repositories
 {
@@ -18,15 +16,33 @@ namespace HerreraSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<List<PresentationDto>> GetAllAsync()
+        public async Task<PagedResponse<PresentationDto>> GetAllAsync(PaginationParams paginationParams)
         {
-            return await _context.Presentations
+            var query = _context.Presentations
+                .AsNoTracking()
+                .OrderBy(p => p.Id)
                 .Select(p => new PresentationDto
                 {
                     Id = p.Id,
                     PresentationName = p.PresentationName,
                     IsActive = p.IsActive
-                }).ToListAsync();
+                });
+
+            var totalRecords = await query.CountAsync();
+
+            var items = await query
+                .Skip((paginationParams.Page - 1) * paginationParams.PageSize)
+                .Take(paginationParams.PageSize)
+                .ToListAsync();
+
+            return new PagedResponse<PresentationDto>
+            {
+                Data = items,
+                CurrentPage = paginationParams.Page,
+                PageSize = paginationParams.PageSize,
+                TotalRecords = totalRecords,
+                TotalPages = (int)Math.Ceiling(totalRecords / (double)paginationParams.PageSize)
+            };
         }
 
         public async Task<PresentationDto?> GetByIdAsync(int id)
@@ -42,12 +58,24 @@ namespace HerreraSystem.Infrastructure.Repositories
             };
         }
 
+        public async Task<bool> ExistsByNameAsync(string presentationName)
+        {
+            var normalized = presentationName.Trim().ToLower();
+            return await _context.Presentations.AnyAsync(p => p.PresentationName.ToLower() == normalized);
+        }
+
+        public async Task<bool> ExistsByNameAsync(string presentationName, int excludeId)
+        {
+            var normalized = presentationName.Trim().ToLower();
+            return await _context.Presentations.AnyAsync(p => p.Id != excludeId && p.PresentationName.ToLower() == normalized);
+        }
+
         public async Task<PresentationDto> CreateAsync(CreatePresentationDto dto)
         {
             var presentation = new Presentation
             {
-                PresentationName = dto.PresentationName,
-                IsActive = true
+                PresentationName = dto.PresentationName.Trim(),
+                IsActive = dto.IsActive ?? true
             };
 
             _context.Presentations.Add(presentation);
@@ -66,8 +94,8 @@ namespace HerreraSystem.Infrastructure.Repositories
             var presentation = await _context.Presentations.FindAsync(id);
             if (presentation is null) return false;
 
-            presentation.PresentationName = dto.PresentationName;
-            presentation.IsActive = dto.IsActive;
+            presentation.PresentationName = dto.PresentationName.Trim();
+            presentation.IsActive = dto.IsActive ?? presentation.IsActive;
 
             await _context.SaveChangesAsync();
             return true;
@@ -82,7 +110,5 @@ namespace HerreraSystem.Infrastructure.Repositories
             await _context.SaveChangesAsync();
             return true;
         }
-
-
     }
 }

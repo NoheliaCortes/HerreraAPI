@@ -2,6 +2,7 @@
 using HerreraSystem.Application.DTOs.FlavorDtos;
 using HerreraSystem.Application.Interfaces.Repositories;
 using HerreraSystem.Application.Interfaces.Services;
+using HerreraSystem.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -35,21 +36,33 @@ namespace HerreraSystem.Application.Services
             return ServiceResult<FlavorDto>.Ok(flavor);
         }
 
-        public async Task<ServiceResult<FlavorDto>> CreateAsync(
-            CreateFlavorDto dto)
+        public async Task<ServiceResult<FlavorDto>> CreateAsync(CreateFlavorDto dto)
         {
-            var exists = await _flavorRepository
-                .ExistsAsync(dto.FlavorName);
+            // 1. Crear la entidad (Flavor)
+            var flavor = new Flavor
+            {
+                FlavorName = dto.FlavorName,
+                FlavorColor = dto.FlavorColor,
+                IsActive = dto.IsActive
+            };
 
-            if (exists)
-                return ServiceResult<FlavorDto>
-                    .Fail("Ya existe un sabor con ese nombre");
+            // 2. CORRECCIÓN: Procesar la imagen ANTES de llegar al repositorio
+            if (dto.ImageURL != null)
+            {
+                // Usas tu servicio de imágenes para guardar el archivo físicamente
+                // y este te devuelve la RUTA (string)
+                string imageUrl = await _productImageService.UploadImageAsync(dto.ImageURL);
 
-            var created = await _flavorRepository
-                .CreateAsync(dto);
+                // Ahora asignas el string, no el archivo
+                flavor.ImageUrl = imageUrl;
+            }
 
-            return ServiceResult<FlavorDto>
-                .Ok(created);
+            // 3. Guardar en el repositorio (Ahora flavor ya tiene un string en ImageUrl)
+            await _flavorRepository.AddAsync(flavor);
+            await _unitOfWork.SaveChangesAsync();
+
+            // 4. Retornar el DTO
+            return ServiceResult<FlavorDto>.Ok(new FlavorDto { /* ... mapeo ... */ });
         }
 
         public async Task<ServiceResult<bool>> UpdateAsync(
