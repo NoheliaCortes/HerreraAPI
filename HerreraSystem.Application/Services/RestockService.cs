@@ -20,6 +20,7 @@ namespace HerreraSystem.Application.Services
         private readonly IInventoryMovementRepository _inventoryMovementRepository;
         private readonly IMovementDetailRepository _movementDetailRepository;
         private readonly ICurrentUserService _currentUserService;
+        private readonly INicaraguaDateTimeService _dateTimeService;
 
         public RestockService(
             IUnitOfWork unitOfWork,
@@ -29,7 +30,8 @@ namespace HerreraSystem.Application.Services
             IBatchLocationRepository batchLocationRepository,
             IInventoryMovementRepository inventoryMovementRepository,
             IMovementDetailRepository movementDetailRepository,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            INicaraguaDateTimeService dateTimeService)
         {
             _unitOfWork = unitOfWork;
             _productRepository = productRepository;
@@ -39,6 +41,7 @@ namespace HerreraSystem.Application.Services
             _inventoryMovementRepository = inventoryMovementRepository;
             _movementDetailRepository = movementDetailRepository;
             _currentUserService = currentUserService;
+            _dateTimeService = dateTimeService;
         }
 
         public async Task<ServiceResult<RestockResponseDto>> CreateRestockAsync(CreateRestockDto dto)
@@ -49,6 +52,7 @@ namespace HerreraSystem.Application.Services
                     "No se pudo identificar el usuario autenticado");
 
             var currentUserId = _currentUserService.CurrentUserId.Value;
+            var now = _dateTimeService.Now;
 
             if (!dto.Batches.Any())
                 return ServiceResult<RestockResponseDto>.Fail(
@@ -61,13 +65,13 @@ namespace HerreraSystem.Application.Services
                     return ServiceResult<RestockResponseDto>.Fail(
                         $"El producto con Id {batchDto.ProductId} no existe");
 
-                if (batchDto.ExpirationDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+                if (batchDto.ExpirationDate <= DateOnly.FromDateTime(now))
                     return ServiceResult<RestockResponseDto>.Fail(
                         $"La fecha de vencimiento del producto Id {batchDto.ProductId} debe ser futura");
             }
 
             // ── GENERACIÓN DE CÓDIGOS ────────────────────────────────────────
-            int year = DateTime.UtcNow.Year;
+            int year = now.Year;
             int restockCount = await _restockRepository.CountByYearAsync(year);
             string restockCode = $"RST-{year}-{(restockCount + 1):D4}";
             int batchCount = await _batchRepository.CountByYearAsync(year);
@@ -83,7 +87,7 @@ namespace HerreraSystem.Application.Services
                     MovementTypeId = 1,
                     SaleId = null,
                     OrderId = null,
-                    MovementDate = DateTime.UtcNow,
+                    MovementDate = now,
                     Notes = dto.Notes,
                     CreatedBy = currentUserId,
                     IsActive = true
@@ -92,7 +96,7 @@ namespace HerreraSystem.Application.Services
                 // PASO 2 — Restock
                 var restock = await _restockRepository.CreateAsync(new Restock
                 {
-                    RestockDate = DateTime.UtcNow,
+                    RestockDate = now,
                     CreatedBy = currentUserId,
                     RestockCode = restockCode
                 });
@@ -135,7 +139,7 @@ namespace HerreraSystem.Application.Services
                         UnitPrice = null,
                         UnitCost = batchDto.UnitProductionCost,
                         CreatedBy = currentUserId,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = now
                     });
 
                     batchResponses.Add(new RestockBatchResponseDto

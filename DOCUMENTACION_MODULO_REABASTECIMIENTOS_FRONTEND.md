@@ -19,6 +19,10 @@ Fuentes principales revisadas:
 - `HerreraSystem.Domain/Entities/InventoryMovement.cs`
 - `HerreraSystem.Domain/Entities/MovementDetail.cs`
 
+## Zona horaria operativa
+
+Las fechas generadas automaticamente por la API para reabastecimientos, movimientos de inventario y detalles de movimiento usan hora local de Nicaragua (`America/Managua`, UTC-06:00). En Windows se resuelve mediante `Central America Standard Time`.
+
 ## 1. Resumen para Front-end
 
 Base path del controlador:

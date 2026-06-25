@@ -1,24 +1,25 @@
-﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.ProductDtos;
 using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Interfaces.Services;
 using HerreraSystem.Domain.Entities;
 using HerreraSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using static HerreraSystem.Application.Common.Constants;
-
 
 namespace HerreraSystem.Infrastructure.Repositories
 {
-    public class ProductRepository:IProductRepository
+    public class ProductRepository : IProductRepository
     {
         private readonly HerreraSystemContext _context;
+        private readonly INicaraguaDateTimeService _dateTimeService;
 
-        public ProductRepository(HerreraSystemContext context)
+        public ProductRepository(
+            HerreraSystemContext context,
+            INicaraguaDateTimeService dateTimeService)
         {
             _context = context;
+            _dateTimeService = dateTimeService;
         }
 
         public async Task<PagedResponse<ProductDto>> GetAllAsync(
@@ -73,7 +74,7 @@ namespace HerreraSystem.Infrastructure.Repositories
                 ImageUrl = dto.ImageUrl,
                 MinimumStock = dto.MinimumStock,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = _dateTimeService.Now
             };
 
             _context.Products.Add(product);
@@ -149,6 +150,8 @@ namespace HerreraSystem.Infrastructure.Repositories
         bool? active,
         PaginationParams paginationParams)
         {
+            var now = _dateTimeService.Now;
+
             var query = _context.Products
                 .AsNoTracking()
                 .AsQueryable();
@@ -195,7 +198,7 @@ namespace HerreraSystem.Infrastructure.Repositories
                             pp.LinePresentationId == p.LinePresentationId &&
                             pp.PriceTypeId == PriceTypeConstants.Wholesale &&
                             (pp.ValidTo == null ||
-                             pp.ValidTo >= DateTime.UtcNow))
+                             pp.ValidTo >= now))
                         .OrderByDescending(pp => pp.ValidFrom)
                         .Select(pp => (decimal?)pp.Price)
                         .FirstOrDefault(),
@@ -206,7 +209,7 @@ namespace HerreraSystem.Infrastructure.Repositories
                             pp.LinePresentationId == p.LinePresentationId &&
                             pp.PriceTypeId == PriceTypeConstants.Retail &&
                             (pp.ValidTo == null ||
-                             pp.ValidTo >= DateTime.UtcNow))
+                             pp.ValidTo >= now))
                         .OrderByDescending(pp => pp.ValidFrom)
                         .Select(pp => (decimal?)pp.Price)
                         .FirstOrDefault()
@@ -273,6 +276,4 @@ namespace HerreraSystem.Infrastructure.Repositories
             => await _context.ProductPrices
                 .AnyAsync(pp => pp.ProductId == productId && pp.IsActive == true);
     }
-
 }
-

@@ -1,6 +1,7 @@
 using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.RestockDtos;
 using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Interfaces.Services;
 using HerreraSystem.Domain.Entities;
 using HerreraSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,10 +11,14 @@ namespace HerreraSystem.Infrastructure.Repositories
     public class RestockRepository : IRestockRepository
     {
         private readonly HerreraSystemContext _context;
+        private readonly INicaraguaDateTimeService _dateTimeService;
 
-        public RestockRepository(HerreraSystemContext context)
+        public RestockRepository(
+            HerreraSystemContext context,
+            INicaraguaDateTimeService dateTimeService)
         {
             _context = context;
+            _dateTimeService = dateTimeService;
         }
 
         public async Task<Restock> CreateAsync(Restock restock)
@@ -106,7 +111,7 @@ namespace HerreraSystem.Infrastructure.Repositories
 
         public async Task<RestockStatisticsDto> GetStatisticsAsync()
         {
-            var now = DateTime.UtcNow;
+            var now = _dateTimeService.Now;
             var monthStart = new DateTime(now.Year, now.Month, 1);
             var nextMonthStart = monthStart.AddMonths(1);
 
@@ -129,37 +134,30 @@ namespace HerreraSystem.Infrastructure.Repositories
             };
         }
 
-        private static (DateTime FromDate, DateTime ToDateExclusive) GetDateRange(
-     DateTime? fromDate,
-     DateTime? toDate)
+        private (DateTime FromDate, DateTime ToDateExclusive) GetDateRange(
+            DateTime? fromDate,
+            DateTime? toDate)
         {
-            // 1. Si ambas fechas son nulas, mantenemos tu lógica del mes actual
             if (!fromDate.HasValue && !toDate.HasValue)
             {
-                var now = DateTime.UtcNow;
+                var now = _dateTimeService.Now;
                 var monthStart = new DateTime(now.Year, now.Month, 1);
 
                 return (monthStart, monthStart.AddMonths(1));
             }
 
-            // 2. Normalizar fecha de inicio (Si es nulo o viene por defecto MinValue de C#)
             var from = (fromDate == null || fromDate == DateTime.MinValue)
-                ? new DateTime(1753, 1, 1) // Fecha mínima segura para la mayoría de bases de datos (SQL Server)
+                ? new DateTime(1753, 1, 1)
                 : fromDate.Value.Date;
 
-            // 3. Normalizar fecha de fin de manera segura sin desbordar el DateTime
             DateTime toExclusive;
 
             if (toDate == null || toDate == DateTime.MaxValue || toDate.Value.Date == DateTime.MaxValue.Date)
             {
-                // Si no mandaron fecha "Hasta", ponemos el límite máximo representable en C# 
-                // sin necesidad de sumarle días (para evitar el desborde)
                 toExclusive = DateTime.MaxValue;
             }
             else
             {
-                // Si mandaron una fecha válida y segura, le sumamos el día de manera normal 
-                // para que el filtro "menor que (<)" en el Where funcione a la perfección
                 toExclusive = toDate.Value.Date.AddDays(1);
             }
 
