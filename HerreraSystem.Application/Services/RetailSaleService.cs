@@ -27,6 +27,8 @@ namespace HerreraSystem.Application.Services
         private readonly IBatchLocationRepository _batchLocationRepository;
         private readonly IInventoryMovementRepository _inventoryMovementRepository;
         private readonly IMovementDetailRepository _movementDetailRepository;
+        private readonly ICurrentUserService _currentUserService;
+        private readonly INicaraguaDateTimeService _dateTimeService;
 
         public RetailSaleService(
             IUnitOfWork unitOfWork,
@@ -37,7 +39,9 @@ namespace HerreraSystem.Application.Services
             IPaymentRepository paymentRepository,
             IBatchLocationRepository batchLocationRepository,
             IInventoryMovementRepository inventoryMovementRepository,
-            IMovementDetailRepository movementDetailRepository)
+            IMovementDetailRepository movementDetailRepository,
+            ICurrentUserService currentUserService,
+            INicaraguaDateTimeService dateTimeService)
         {
             _unitOfWork = unitOfWork;
             _productRepository = productRepository;
@@ -48,6 +52,8 @@ namespace HerreraSystem.Application.Services
             _batchLocationRepository = batchLocationRepository;
             _inventoryMovementRepository = inventoryMovementRepository;
             _movementDetailRepository = movementDetailRepository;
+            _currentUserService = currentUserService;
+            _dateTimeService = dateTimeService;
         }
 
         public async Task<ServiceResult<RetailSaleResponseDto>> CreateRetailSaleAsync(
@@ -60,6 +66,13 @@ namespace HerreraSystem.Application.Services
             // ══════════════════════════════════════════════════════════════════
 
             // Paso 1 — Validar productos y obtener precios vigentes
+            if (!_currentUserService.IsAuthenticated || _currentUserService.CurrentUserId is null)
+                return ServiceResult<RetailSaleResponseDto>.Fail(
+                    "No se pudo identificar el usuario autenticado");
+
+            var currentUserId = _currentUserService.CurrentUserId.Value;
+            var now = _dateTimeService.Now;
+
             var itemPrices = new Dictionary<int, decimal>(); // productId → precio
 
             foreach (var item in dto.Items)
@@ -89,7 +102,7 @@ namespace HerreraSystem.Application.Services
                 .Sum(item => itemPrices[item.ProductId] * item.Quantity);
 
             // Generar SaleCode antes de la transacción (solo es un conteo)
-            int year = DateTime.UtcNow.Year;
+            int year = now.Year;
             int saleCount = await _saleRepository.CountByYearAsync(year);
             string saleCode = $"VTA-{year}-{(saleCount + 1):D4}";
 
@@ -108,11 +121,11 @@ namespace HerreraSystem.Application.Services
                 {
                     OrderId = null,
                     CustomerId = GenericCustomerId,
-                    SaleDate = DateTime.UtcNow,
+                    SaleDate = now,
                     TotalSale = totalSale,
                     PaymentStatus = "Pagado",
                     PendingBalance = 0,
-                    CreatedBy = dto.CreatedBy,
+                    CreatedBy = currentUserId,
                     PaymentTypeId = PaymentTypeContado,
                     SaleTypeId = SaleTypeDetalle,
                     SaleCode = saleCode
@@ -125,9 +138,9 @@ namespace HerreraSystem.Application.Services
                         MovementTypeId = MovementTypeEgreso,
                         SaleId = sale.Id,
                         OrderId = null,
-                        MovementDate = DateTime.UtcNow,
+                        MovementDate = now,
                         Notes = dto.Notes,
-                        CreatedBy = dto.CreatedBy,
+                        CreatedBy = currentUserId,
                         IsActive = true
                     });
 
@@ -137,9 +150,9 @@ namespace HerreraSystem.Application.Services
                     SaleId = sale.Id,
                     PaymentMethodId = dto.PaymentMethodId,
                     AmountReceived = totalSale,
-                    PaymentDate = DateTime.UtcNow,
+                    PaymentDate = now,
                     TransactionReference = dto.TransactionReference,
-                    RegisteredBy = dto.CreatedBy
+                    RegisteredBy = currentUserId
                 });
 
                 // Paso 7, 8, 9, 10 — FIFO por cada producto
@@ -205,8 +218,8 @@ namespace HerreraSystem.Application.Services
                             Quantity = qtyFromThisLot,
                             UnitPrice = appliedPrice,
                             UnitCost = 0,     // costo ya registrado en el restock
-                            CreatedBy = dto.CreatedBy,
-                            CreatedAt = DateTime.UtcNow
+                            CreatedBy = currentUserId,
+                            CreatedAt = now
                         });
 
                         remainingQty -= qtyFromThisLot;

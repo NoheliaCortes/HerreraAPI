@@ -1,8 +1,6 @@
-﻿using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Interfaces.Services;
 using HerreraSystem.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 
 namespace HerreraSystem.Infrastructure.Repositories
@@ -10,15 +8,19 @@ namespace HerreraSystem.Infrastructure.Repositories
     public class ProductPriceRepository : IProductPriceRepository
     {
         private readonly HerreraSystemContext _context;
+        private readonly INicaraguaDateTimeService _dateTimeService;
 
-        public ProductPriceRepository(HerreraSystemContext context)
+        public ProductPriceRepository(
+            HerreraSystemContext context,
+            INicaraguaDateTimeService dateTimeService)
         {
             _context = context;
+            _dateTimeService = dateTimeService;
         }
 
         public async Task<decimal?> GetActivePriceAsync(int productId, string priceTypeName)
         {
-            var now = DateTime.UtcNow;
+            var now = _dateTimeService.Now;
 
             // Intento 1 — precio asignado directamente al producto
             var priceByProduct = await _context.ProductPrices

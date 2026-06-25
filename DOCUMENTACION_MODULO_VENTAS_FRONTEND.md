@@ -4,7 +4,73 @@ Base URL: `/api/Sales`
 
 Todas las respuestas usan el contenedor estandar `ApiResponse<T>`. El listado general usa `PagedResponse<T>` dentro de `data`.
 
-Las consultas siguen el criterio actual de Restock: endpoints GET publicos y operaciones de escritura separadas. El endpoint existente `POST /api/Sales/retail` no fue modificado.
+Las consultas siguen el criterio actual de Restock: endpoints GET publicos y operaciones de escritura separadas. El endpoint `POST /api/Sales/retail` requiere JWT y obtiene el usuario desde el token.
+
+## Zona horaria operativa
+
+Las fechas generadas automaticamente por ventas, pagos, movimientos de inventario y detalles de movimiento usan hora local de Nicaragua (`America/Managua`, UTC-06:00), obtenida desde un servicio centralizado. El frontend debe interpretar estas fechas como hora local operativa del sistema.
+
+## Registrar venta al detalle
+
+`POST /api/Sales/retail`
+
+Requiere autenticacion:
+
+`Authorization: Bearer {token}`
+
+El usuario creador, el usuario del movimiento de inventario y el usuario registrador del pago se obtienen desde el JWT usando `ICurrentUserService`. El frontend no debe enviar `createdBy`, `userId` ni `registeredBy`.
+
+Request correcto:
+
+```json
+{
+  "paymentMethodId": 1,
+  "transactionReference": "BAC-123456",
+  "notes": "Venta en mostrador",
+  "items": [
+    {
+      "productId": 15,
+      "quantity": 2
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "Venta registrada exitosamente",
+  "data": {
+    "saleId": 1,
+    "saleCode": "VTA-2026-0001",
+    "totalSale": 200.00,
+    "saleDate": "2026-06-25T10:30:00Z",
+    "paymentStatus": "Pagado",
+    "inventoryMovementId": 1,
+    "items": [
+      {
+        "productId": 15,
+        "productName": "Premium Litro Fresa",
+        "quantity": 2,
+        "appliedPrice": 100.00,
+        "lineSubtotal": 200.00
+      }
+    ]
+  }
+}
+```
+
+Si el usuario no puede identificarse desde el token, retorna error controlado:
+
+```json
+{
+  "success": false,
+  "message": "No se pudo identificar el usuario autenticado",
+  "data": null
+}
+```
 
 ## 1. Estadisticas de ventas
 

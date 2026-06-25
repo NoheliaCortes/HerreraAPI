@@ -20,19 +20,22 @@ namespace HerreraSystem.Application.Services
         private readonly IBatchLocationRepository _batchLocationRepository;
         private readonly IInventoryMovementRepository _inventoryMovementRepository;
         private readonly IMovementDetailRepository _movementDetailRepository;
+        private readonly INicaraguaDateTimeService _dateTimeService;
 
         public InventoryMovementService(
             IUnitOfWork unitOfWork,
             IBatchRepository batchRepository,
             IBatchLocationRepository batchLocationRepository,
             IInventoryMovementRepository inventoryMovementRepository,
-            IMovementDetailRepository movementDetailRepository)
+            IMovementDetailRepository movementDetailRepository,
+            INicaraguaDateTimeService dateTimeService)
         {
             _unitOfWork = unitOfWork;
             _batchRepository = batchRepository;
             _batchLocationRepository = batchLocationRepository;
             _inventoryMovementRepository = inventoryMovementRepository;
             _movementDetailRepository = movementDetailRepository;
+            _dateTimeService = dateTimeService;
         }
 
         // ── Transferencia ────────────────────────────────────────────────────
@@ -52,11 +55,13 @@ namespace HerreraSystem.Application.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                var now = _dateTimeService.Now;
+
                 var movement = await _inventoryMovementRepository.CreateAsync(
                     new InventoryMovement
                     {
                         MovementTypeId = TransferenciaId,
-                        MovementDate = DateTime.UtcNow,
+                        MovementDate = now,
                         Notes = dto.Notes,
                         CreatedBy = dto.CreatedBy,
                         IsActive = true
@@ -120,7 +125,7 @@ namespace HerreraSystem.Application.Services
                             Quantity = item.Quantity,
                             UnitCost = batch.UnitProductionCost,
                             CreatedBy = dto.CreatedBy,
-                            CreatedAt = DateTime.UtcNow
+                            CreatedAt = now
                         });
 
                     createdDetails.Add(detail);
@@ -150,11 +155,13 @@ namespace HerreraSystem.Application.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                var now = _dateTimeService.Now;
+
                 var movement = await _inventoryMovementRepository.CreateAsync(
                     new InventoryMovement
                     {
                         MovementTypeId = AjustePositivoId,
-                        MovementDate = DateTime.UtcNow,
+                        MovementDate = now,
                         Notes = dto.Notes,
                         CreatedBy = dto.CreatedBy,
                         IsActive = true
@@ -198,7 +205,7 @@ namespace HerreraSystem.Application.Services
                             Quantity = item.Quantity,
                             UnitCost = batch.UnitProductionCost,
                             CreatedBy = dto.CreatedBy,
-                            CreatedAt = DateTime.UtcNow
+                            CreatedAt = now
                         });
 
                     createdDetails.Add(detail);
@@ -228,11 +235,13 @@ namespace HerreraSystem.Application.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                var now = _dateTimeService.Now;
+
                 var movement = await _inventoryMovementRepository.CreateAsync(
                     new InventoryMovement
                     {
                         MovementTypeId = AjusteNegativoId,
-                        MovementDate = DateTime.UtcNow,
+                        MovementDate = now,
                         Notes = dto.Notes,
                         CreatedBy = dto.CreatedBy,
                         IsActive = true
@@ -275,7 +284,7 @@ namespace HerreraSystem.Application.Services
                             Quantity = item.Quantity,
                             UnitCost = batch.UnitProductionCost,
                             CreatedBy = dto.CreatedBy,
-                            CreatedAt = DateTime.UtcNow
+                            CreatedAt = now
                         });
 
                     createdDetails.Add(detail);
