@@ -1,6 +1,7 @@
 using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.SaleDtos;
 using HerreraSystem.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HerreraSystem.API.Controllers
@@ -77,6 +78,7 @@ namespace HerreraSystem.API.Controllers
         }
 
         [HttpPost("retail")]
+        [Authorize]
         public async Task<IActionResult> CreateRetailSale(CreateRetailSaleDto dto)
         {
             var result = await _retailSaleService.CreateRetailSaleAsync(dto);

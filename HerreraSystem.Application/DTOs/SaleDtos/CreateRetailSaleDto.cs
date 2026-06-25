@@ -7,9 +7,6 @@ namespace HerreraSystem.Application.DTOs.SaleDtos
 {
     public class CreateRetailSaleDto
     {
-        [Required(ErrorMessage = "El CreatedBy es obligatorio")]
-        public int CreatedBy { get; set; }
-
         [Required(ErrorMessage = "El método de pago es obligatorio")]
         public int PaymentMethodId { get; set; }
 
