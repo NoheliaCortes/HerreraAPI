@@ -12,11 +12,11 @@ namespace HerreraSystem.Application.DTOs.FlavorDtos
         [StringLength(100, ErrorMessage = "El nombre no puede exceder 100 caracteres")]
         public string FlavorName { get; set; } = null!;
 
-        [StringLength(7, ErrorMessage = "El color debe ser un código hex válido")]
+        [RegularExpression("^#([A-Fa-f0-9]{6})$",
+            ErrorMessage = "El color debe ser un código HEX válido")]
         public string? FlavorColor { get; set; }
 
-        
-        public IFormFile? ImageURL { get; set; }
+        public IFormFile? ImageFile { get; set; }
 
         public bool IsActive { get; set; } = true;
 

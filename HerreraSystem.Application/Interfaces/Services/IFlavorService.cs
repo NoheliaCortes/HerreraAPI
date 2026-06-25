@@ -8,18 +8,10 @@ namespace HerreraSystem.Application.Interfaces.Services
 {
     public interface IFlavorService
     {
-        Task<PagedResponse<FlavorDto>> GetAllAsync(
-       PaginationParams paginationParams);
-
+        Task<PagedResponse<FlavorDto>> GetAllAsync(PaginationParams paginationParams);
         Task<ServiceResult<FlavorDto>> GetByIdAsync(int id);
-
-        Task<ServiceResult<FlavorDto>> CreateAsync(
-            CreateFlavorDto dto);
-
-        Task<ServiceResult<bool>> UpdateAsync(
-            int id,
-            UpdateFlavorDto dto);
-
+        Task<ServiceResult<FlavorDto>> CreateAsync(CreateFlavorDto dto);
+        Task<ServiceResult<bool>> UpdateAsync(int id, UpdateFlavorDto dto);
         Task<ServiceResult<bool>> DeleteAsync(int id);
     }
 }
