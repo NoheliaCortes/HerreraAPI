@@ -13,6 +13,10 @@ Este documento describe el estado actual del modulo de inventario en la API `Her
 
 La documentacion se basa en el codigo fuente actual de controladores, DTOs, entidades EF Core, servicios, repositorios y `HerreraSystemContext`.
 
+## Zona horaria operativa
+
+Las fechas automaticas asociadas a inventario, movimientos y detalles de movimiento usan hora local de Nicaragua (`America/Managua`, UTC-06:00), obtenida desde un servicio centralizado. Las fechas ingresadas por el usuario, como vencimientos de lote, no se convierten automaticamente.
+
 ## 2. Convenciones Generales de API
 
 ### 2.1 Envoltura `ApiResponse<T>`

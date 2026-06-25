@@ -13,6 +13,10 @@ Fuentes principales revisadas:
 - `HerreraSystemAPI/Program.cs`
 - `HerreraSystemAPI/Middleware/ExceptionMiddleware.cs`
 
+## Zona horaria operativa
+
+Las fechas generadas automaticamente por la API para operaciones del sistema usan hora local de Nicaragua (`America/Managua`, UTC-06:00). En Windows se resuelve mediante `Central America Standard Time`. Para productos, `CreatedAt` se registra con esta hora local centralizada.
+
 ## 1. Resumen ejecutivo para Front-end
 
 Base path del controlador:

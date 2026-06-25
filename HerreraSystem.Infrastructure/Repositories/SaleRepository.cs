@@ -1,6 +1,7 @@
 using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.SaleDtos;
 using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Interfaces.Services;
 using HerreraSystem.Domain.Entities;
 using HerreraSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,10 +11,14 @@ namespace HerreraSystem.Infrastructure.Repositories
     public class SaleRepository : ISaleRepository
     {
         private readonly HerreraSystemContext _context;
+        private readonly INicaraguaDateTimeService _dateTimeService;
 
-        public SaleRepository(HerreraSystemContext context)
+        public SaleRepository(
+            HerreraSystemContext context,
+            INicaraguaDateTimeService dateTimeService)
         {
             _context = context;
+            _dateTimeService = dateTimeService;
         }
 
         public async Task<Sale> CreateAsync(Sale sale)
@@ -32,7 +37,7 @@ namespace HerreraSystem.Infrastructure.Repositories
 
         public async Task<SalesStatsDto> GetStatsAsync()
         {
-            var now = DateTime.UtcNow;
+            var now = _dateTimeService.Now;
             var monthStart = new DateTime(now.Year, now.Month, 1);
             var nextMonthStart = monthStart.AddMonths(1);
 
@@ -156,13 +161,13 @@ namespace HerreraSystem.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        private static (DateTime StartDate, DateTime EndDateExclusive) GetDateRange(
+        private (DateTime StartDate, DateTime EndDateExclusive) GetDateRange(
             DateTime? startDate,
             DateTime? endDate)
         {
             if (!startDate.HasValue && !endDate.HasValue)
             {
-                var now = DateTime.UtcNow;
+                var now = _dateTimeService.Now;
                 var monthStart = new DateTime(now.Year, now.Month, 1);
 
                 return (monthStart, monthStart.AddMonths(1));

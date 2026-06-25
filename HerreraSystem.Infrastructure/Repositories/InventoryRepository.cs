@@ -1,6 +1,7 @@
 using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.InventoryDtos;
 using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Interfaces.Services;
 using HerreraSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -19,10 +20,14 @@ namespace HerreraSystem.Infrastructure.Repositories
         private const int WholesaleSaleTypeId = 2;
 
         private readonly HerreraSystemContext _context;
+        private readonly INicaraguaDateTimeService _dateTimeService;
 
-        public InventoryRepository(HerreraSystemContext context)
+        public InventoryRepository(
+            HerreraSystemContext context,
+            INicaraguaDateTimeService dateTimeService)
         {
             _context = context;
+            _dateTimeService = dateTimeService;
         }
 
         public async Task<List<InventoryProductDto>> GetInventoryProductsAsync(
@@ -174,7 +179,7 @@ namespace HerreraSystem.Infrastructure.Repositories
         public async Task<InventoryStatsDto> GetStatsAsync(string period)
         {
             var normalizedPeriod = NormalizePeriod(period);
-            var periodStart = GetPeriodStartUtc(normalizedPeriod);
+            var periodStart = GetPeriodStart(normalizedPeriod);
 
             var totalProducts = await _context.Products
                 .AsNoTracking()
@@ -266,9 +271,9 @@ namespace HerreraSystem.Infrastructure.Repositories
             };
         }
 
-        private static DateTime? GetPeriodStartUtc(string period)
+        private DateTime? GetPeriodStart(string period)
         {
-            var now = DateTime.UtcNow;
+            var now = _dateTimeService.Now;
 
             return period switch
             {
@@ -287,7 +292,7 @@ namespace HerreraSystem.Infrastructure.Repositories
             int? flavorId,
             int? presentationId)
         {
-            var now = DateTime.UtcNow;
+            var now = _dateTimeService.Now;
 
             var query = _context.Products
                 .AsNoTracking()

@@ -1,6 +1,7 @@
 using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.PricesDtos;
 using HerreraSystem.Application.Interfaces.Repositories;
+using HerreraSystem.Application.Interfaces.Services;
 using HerreraSystem.Domain.Entities;
 using HerreraSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +12,19 @@ namespace HerreraSystem.Infrastructure.Repositories
     public class GeneralPriceRepository : IGeneralPriceRepository
     {
         private readonly HerreraSystemContext _context;
+        private readonly INicaraguaDateTimeService _dateTimeService;
 
-        public GeneralPriceRepository(HerreraSystemContext context)
+        public GeneralPriceRepository(
+            HerreraSystemContext context,
+            INicaraguaDateTimeService dateTimeService)
         {
             _context = context;
+            _dateTimeService = dateTimeService;
         }
 
         public async Task<List<GeneralPriceDto>> GetGeneralPricesAsync(int? lineId)
         {
-            var now = DateTime.UtcNow;
+            var now = _dateTimeService.Now;
 
             var query = _context.LinePresentations.AsNoTracking().AsQueryable();
 
@@ -98,7 +103,7 @@ namespace HerreraSystem.Infrastructure.Repositories
                 ValidTo = dto.ValidTo,
                 IsActive = true,
                 CreatedBy = dto.CreatedBy,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = _dateTimeService.Now
             };
 
             _context.ProductPrices.Add(productPrice);
@@ -110,7 +115,7 @@ namespace HerreraSystem.Infrastructure.Repositories
 
         public async Task<GeneralPriceDetailDto?> ChangeGeneralPriceAsync(int linePresentationId, ChangeGeneralPriceDto dto)
         {
-            var now = DateTime.UtcNow;
+            var now = _dateTimeService.Now;
             var current = await _context.ProductPrices
                 .Where(pp => pp.ProductId == null
                     && pp.LinePresentationId == linePresentationId
@@ -153,7 +158,7 @@ namespace HerreraSystem.Infrastructure.Repositories
                 ValidTo = dto.ValidTo,
                 IsActive = true,
                 CreatedBy = dto.CreatedBy,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = _dateTimeService.Now
             };
 
             _context.ProductPrices.Add(productPrice);
@@ -165,7 +170,7 @@ namespace HerreraSystem.Infrastructure.Repositories
 
         public async Task<List<GeneralPriceDetailDto>> GetCurrentGeneralPricesAsync(int? lineId, int? priceTypeId)
         {
-            var now = DateTime.UtcNow;
+            var now = _dateTimeService.Now;
 
             var query = GetGeneralPriceBaseQuery()
                 .Where(pp => pp.IsActive == true
@@ -206,7 +211,7 @@ namespace HerreraSystem.Infrastructure.Repositories
 
         public async Task<PriceStatisticsDto> GetStatisticsAsync()
         {
-            var now = DateTime.UtcNow;
+            var now = _dateTimeService.Now;
             var nextSevenDays = now.AddDays(7);
 
             var productsWithPrice = await _context.Products
