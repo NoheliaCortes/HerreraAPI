@@ -1,16 +1,13 @@
-﻿using HerreraSystem.Application.DTOs.FlavorDtos;
+﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.DTOs.FlavorDtos;
+using HerreraSystem.Application.Interfaces.Repositories;
 using HerreraSystem.Domain.Entities;
 using HerreraSystem.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
-using HerreraSystem.Application.Interfaces.Repositories;
-using HerreraSystem.Application.Common;
 
 namespace HerreraSystem.Infrastructure.Repositories
 {
-    public class FlavorRepository : IFlavorRepository   
+    public class FlavorRepository : IFlavorRepository
     {
         private readonly HerreraSystemContext _context;
 
@@ -19,8 +16,7 @@ namespace HerreraSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<PagedResponse<FlavorDto>> GetAllAsync(
-        PaginationParams paginationParams)
+        public async Task<PagedResponse<FlavorDto>> GetAllAsync(PaginationParams paginationParams)
         {
             var query = _context.Flavors
                 .AsNoTracking()
@@ -52,14 +48,14 @@ namespace HerreraSystem.Infrastructure.Repositories
             };
         }
 
-        public async Task<FlavorDto> CreateAsync(CreateFlavorDto dto)
+        public async Task<FlavorDto> CreateAsync(CreateFlavorDto dto, string? imageUrl)
         {
             var flavor = new Flavor
             {
                 FlavorName = dto.FlavorName,
-                ImageUrl = dto.ImageURL,
+                ImageUrl = imageUrl,
                 FlavorColor = dto.FlavorColor,
-                IsActive = true
+                IsActive = dto.IsActive
             };
 
             _context.Flavors.Add(flavor);
@@ -75,15 +71,19 @@ namespace HerreraSystem.Infrastructure.Repositories
             };
         }
 
-        public async Task<bool> UpdateAsync(int id, UpdateFlavorDto dto)
+        public async Task<bool> UpdateAsync(int id, UpdateFlavorDto dto, string? imageUrl)
         {
             var flavor = await _context.Flavors.FindAsync(id);
             if (flavor is null) return false;
 
             flavor.FlavorName = dto.FlavorName;
             flavor.IsActive = dto.IsActive;
-            flavor.ImageUrl = dto.ImageUrl;
             flavor.FlavorColor = dto.FlavorColor;
+
+            if (!string.IsNullOrWhiteSpace(imageUrl))
+            {
+                flavor.ImageUrl = imageUrl;
+            }
 
             await _context.SaveChangesAsync();
             return true;
@@ -99,15 +99,11 @@ namespace HerreraSystem.Infrastructure.Repositories
             return true;
         }
 
-
-        public async Task<bool> ExistsAsync(
-    string flavorName,
-    int? excludeId = null)
+        public async Task<bool> ExistsAsync(string flavorName, int? excludeId = null)
         {
             return await _context.Flavors
-                .AnyAsync(f =>
-                    f.FlavorName == flavorName &&
-                    (excludeId == null || f.Id != excludeId));
+                .AnyAsync(f => f.FlavorName == flavorName &&
+                               (excludeId == null || f.Id != excludeId));
         }
 
         public async Task<bool> HasProductsAsync(int flavorId)
@@ -115,6 +111,5 @@ namespace HerreraSystem.Infrastructure.Repositories
             return await _context.Products
                 .AnyAsync(p => p.FlavorId == flavorId);
         }
-
     }
 }

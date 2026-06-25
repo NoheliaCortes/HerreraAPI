@@ -48,7 +48,6 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header
     });
 
-    // Nueva sintaxis para Microsoft.OpenApi 2.x
     options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
         {
@@ -62,7 +61,8 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
+})
+.AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -80,9 +80,8 @@ builder.Services.AddDbContext<HerreraSystemContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IFlavorRepository, FlavorRepository>();
-
 builder.Services.AddScoped<IFlavorService, FlavorService>();
-
+builder.Services.AddScoped<IFlavorImageService, FlavorImageService>();
 
 builder.Services.AddScoped<ILineRepository, LineRepository>();
 builder.Services.AddScoped<IPresentationRepository, PresentationRepository>();
@@ -92,7 +91,6 @@ builder.Services.AddScoped<IPresentationService, PresentationService>();
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
-
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
@@ -120,14 +118,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IMunicipalityRepository, MunicipalityRepository>();
 builder.Services.AddScoped<IMunicipalityService, MunicipalityService>();
-
-
-
 
 builder.Services.AddCors(options =>
 {
@@ -143,7 +137,11 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
-Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"), "uploads", "products"));
+var webRootPath = app.Environment.WebRootPath
+                  ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+
+Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "products"));
+Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "flavors"));
 
 if (app.Environment.IsDevelopment())
 {
