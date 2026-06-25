@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
@@ -13,12 +14,11 @@ namespace HerreraSystem.Application.DTOs.FlavorDtos
 
         public bool? IsActive { get; set; }
 
-        [Url(ErrorMessage = "La URL de la imagen no es válida")]
-        public string? ImageUrl { get; set; }
-
         [RegularExpression("^#([A-Fa-f0-9]{6})$",
             ErrorMessage = "El color debe ser un código HEX válido")]
         public string? FlavorColor { get; set; }
+
+        public IFormFile? ImageFile { get; set; }
 
     }
 }

@@ -1,8 +1,9 @@
-﻿using HerreraSystem.Application.DTOs.FlavorDtos;
+﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.DTOs.FlavorDtos;
+using HerreraSystem.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using HerreraSystem.Application.Common;
 
 namespace HerreraSystem.Application.Interfaces.Repositories
 {
@@ -10,10 +11,9 @@ namespace HerreraSystem.Application.Interfaces.Repositories
     {
         Task<PagedResponse<FlavorDto>> GetAllAsync(PaginationParams paginationParams);
         Task<FlavorDto?> GetByIdAsync(int id);
-        Task<FlavorDto> CreateAsync(CreateFlavorDto dto);
-        Task<bool> UpdateAsync(int id, UpdateFlavorDto dto);
+        Task<FlavorDto> CreateAsync(CreateFlavorDto dto, string? imageUrl);
+        Task<bool> UpdateAsync(int id, UpdateFlavorDto dto, string? imageUrl);
         Task<bool> DeleteAsync(int id);
-
         Task<bool> ExistsAsync(string flavorName, int? excludeId = null);
         Task<bool> HasProductsAsync(int flavorId);
 
