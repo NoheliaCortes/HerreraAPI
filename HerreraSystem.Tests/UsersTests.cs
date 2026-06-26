@@ -42,8 +42,11 @@ namespace HerreraSystem.Tests
                 RoleName = "Administrador"
             };
 
+           
             var usuarioExistente = await _context.Users
-                .FirstOrDefaultAsync(u => u.UserName == _createUser.UserName || u.Email == _createUser.Email);
+                .FirstOrDefaultAsync(u => u.UserName == _createUser.UserName
+                                       || u.Email == _createUser.Email
+                                       || u.IdNumber == _createUser.IdNumber);
 
             if (usuarioExistente != null)
             {
@@ -53,44 +56,9 @@ namespace HerreraSystem.Tests
         }
 
         [TearDown]
-        public void TearDown()
+        public async Task TearDown()
         {
-            _context.Dispose();
-        }
-
-        [Test]
-        [Order(1)]
-        public async Task UserService_CreateAsync_DebeCrearUsuarioYAsignarRolCorrectamente()
-        {
-            var rolExiste = await _context.Roles
-                .AnyAsync(r => r.RoleName == _createUser.RoleName);
-
-            Assert.That(rolExiste, Is.True, $"El rol '{_createUser.RoleName}' no existe en la base de datos.");
-
-            var usuarioAntes = await _context.Users
-                .AnyAsync(u => u.UserName == _createUser.UserName || u.Email == _createUser.Email);
-
-            Assert.That(usuarioAntes, Is.False, "Ya existe un usuario con ese UserName o Email antes de ejecutar CreateAsync.");
-
-            var resultado = await _service.CreateAsync(_createUser);
-
-            var usuarioDespues = await _context.Users
-                .FirstOrDefaultAsync(u => u.UserName == _createUser.UserName);
-
-            Assert.That(
-                resultado.Success,
-                Is.True,
-                $"CreateAsync devolvió false. Data: '{resultado.Data ?? "NULL"}'. Usuario insertado en BD: {(usuarioDespues != null ? "Sí" : "No")}"
-            );
-
-            Assert.That(usuarioDespues, Is.Not.Null, "El usuario no fue insertado en la base de datos.");
-            Assert.That(usuarioDespues!.Email, Is.EqualTo(_createUser.Email));
-        }
-
-        [Test]
-        [Order(2)]
-        public async Task UserService_CleanUp_DebeEliminarUsuarioDePrueba()
-        {
+           /*
             var usuario = await _context.Users
                 .FirstOrDefaultAsync(u => u.UserName == _createUser.UserName);
 
@@ -98,12 +66,44 @@ namespace HerreraSystem.Tests
             {
                 _context.Users.Remove(usuario);
                 await _context.SaveChangesAsync();
-            }
+            }*/
 
-            var usuarioBorrado = await _context.Users
+            _context.Dispose();
+        }
+
+        [Test]
+        public async Task UserService_CreateAsync_DebeCrearUsuarioYAsignarRolCorrectamente()
+        {
+            
+            var rolExiste = await _context.Roles
+                .AsNoTracking()
+                .AnyAsync(r => r.RoleName == _createUser.RoleName);
+
+            Assert.That(rolExiste, Is.True, $"El rol '{_createUser.RoleName}' no existe en la base de datos.");
+
+            var usuarioAntes = await _context.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.UserName == _createUser.UserName
+                            || u.Email == _createUser.Email
+                            || u.IdNumber == _createUser.IdNumber);
+
+            Assert.That(usuarioAntes, Is.False, "Ya existe un usuario con esos datos antes de empezar la prueba.");
+
+            
+            var resultado = await _service.CreateAsync(_createUser);
+
+            var usuarioDespues = await _context.Users
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.UserName == _createUser.UserName);
 
-            Assert.That(usuarioBorrado, Is.Null);
+            Assert.That(
+                resultado.Success,
+                Is.True,
+                $"No se pudo crear el usuario. El sistema dice: '{resultado.ErrorMessage ?? "Sin mensaje de error"}'. ¿Apareció en BD?: {(usuarioDespues != null ? "Sí" : "No")}"
+            );
+
+            Assert.That(usuarioDespues, Is.Not.Null, "El usuario no apareció guardado en la base de datos.");
+            Assert.That(usuarioDespues!.Email, Is.EqualTo(_createUser.Email));
         }
     }
 }
