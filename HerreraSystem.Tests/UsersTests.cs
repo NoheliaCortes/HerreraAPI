@@ -4,6 +4,7 @@ using HerreraSystem.Infrastructure.Data;
 using HerreraSystem.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace HerreraSystem.Tests
@@ -14,9 +15,10 @@ namespace HerreraSystem.Tests
         private HerreraSystemContext _context;
         private UserService _service;
         private CreateUserDto _createUser;
+        private CreateUserDto _nuevoUser;
 
         [SetUp]
-        public async Task SetUp()
+        public void SetUp()
         {
             var connectionString = "Server=DESKTOP-VSK4022\\SQLEXPRESS01;" +
                                    "Database=HerreraSystem;" +
@@ -33,77 +35,123 @@ namespace HerreraSystem.Tests
 
             _createUser = new CreateUserDto
             {
-                UserName = "fHerrera_svc",
-                Email = "fabian_svc@sorbeteria.com",
-                IdNumber = "041221006100F",
-                FirstName = "Fabian",
+                UserName = "rOMINA",
+                Email = "rominanarte12@gmail.com",
+                IdNumber = "0412210061200F",
+                FirstName = "Romina",
                 LastName = "Herrera",
-                Password = "Password123!",
+                Password = "Test123*",
                 RoleName = "Administrador"
             };
 
-           
-            var usuarioExistente = await _context.Users
-                .FirstOrDefaultAsync(u => u.UserName == _createUser.UserName
-                                       || u.Email == _createUser.Email
-                                       || u.IdNumber == _createUser.IdNumber);
-
-            if (usuarioExistente != null)
+            _nuevoUser = new CreateUserDto
             {
-                _context.Users.Remove(usuarioExistente);
-                await _context.SaveChangesAsync();
-            }
+                UserName = "UsuarioPrueba",
+                Email = "prueba@gmail.com",
+                IdNumber = "00000000000000",
+                FirstName = "Prueba",
+                LastName = "Prueba",
+                Password = "Test123*",
+                RoleName = "Administrador"
+            };
         }
 
         [TearDown]
         public async Task TearDown()
         {
-           /*
             var usuario = await _context.Users
-                .FirstOrDefaultAsync(u => u.UserName == _createUser.UserName);
+                .Include(u => u.UserRoles)
+                .FirstOrDefaultAsync(u => u.UserName == _nuevoUser.UserName);
 
             if (usuario != null)
             {
+                if (usuario.UserRoles.Any())
+                {
+                    _context.UserRoles.RemoveRange(usuario.UserRoles);
+                }
                 _context.Users.Remove(usuario);
                 await _context.SaveChangesAsync();
-            }*/
+            }
 
-            _context.Dispose();
+            await _context.DisposeAsync();
         }
 
         [Test]
         public async Task UserService_CreateAsync_DebeCrearUsuarioYAsignarRolCorrectamente()
         {
-            
-            var rolExiste = await _context.Roles
-                .AsNoTracking()
-                .AnyAsync(r => r.RoleName == _createUser.RoleName);
-
-            Assert.That(rolExiste, Is.True, $"El rol '{_createUser.RoleName}' no existe en la base de datos.");
-
-            var usuarioAntes = await _context.Users
-                .AsNoTracking()
-                .AnyAsync(u => u.UserName == _createUser.UserName
-                            || u.Email == _createUser.Email
-                            || u.IdNumber == _createUser.IdNumber);
-
-            Assert.That(usuarioAntes, Is.False, "Ya existe un usuario con esos datos antes de empezar la prueba.");
-
-            
-            var resultado = await _service.CreateAsync(_createUser);
+            var resultado = await _service.CreateAsync(_nuevoUser);
 
             var usuarioDespues = await _context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.UserName == _createUser.UserName);
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.UserName == _nuevoUser.UserName);
 
-            Assert.That(
-                resultado.Success,
-                Is.True,
-                $"No se pudo crear el usuario. El sistema dice: '{resultado.ErrorMessage ?? "Sin mensaje de error"}'. ¿Apareció en BD?: {(usuarioDespues != null ? "Sí" : "No")}"
-            );
+            Assert.That(resultado.Success, Is.True);
+            Assert.That(usuarioDespues, Is.Not.Null);
+            Assert.That(usuarioDespues!.Email, Is.EqualTo(_nuevoUser.Email));
+            Assert.That(usuarioDespues.IdNumber, Is.EqualTo(_nuevoUser.IdNumber));
+            Assert.That(usuarioDespues.UserRoles.Any(ur => ur.Role.RoleName == _nuevoUser.RoleName), Is.True);
+        }
 
-            Assert.That(usuarioDespues, Is.Not.Null, "El usuario no apareció guardado en la base de datos.");
-            Assert.That(usuarioDespues!.Email, Is.EqualTo(_createUser.Email));
+        [Test]
+        public async Task UserService_CreateAsync_DebeFallarSiElUserNameYaExiste()
+        {
+            var usuarioDuplicado = new CreateUserDto
+            {
+                UserName = _createUser.UserName,
+                Email = "otro@gmail.com",
+                IdNumber = "12345678901234",
+                FirstName = "Otro",
+                LastName = "Usuario",
+                Password = "Test123*",
+                RoleName = "Administrador"
+            };
+
+            var resultado = await _service.CreateAsync(usuarioDuplicado);
+
+            Assert.That(resultado.Success, Is.False);
+            Assert.That(resultado.ErrorMessage, Does.Contain("nombre de usuario").IgnoreCase);
+        }
+
+        [Test]
+        public async Task UserService_CreateAsync_DebeFallarSiElEmailYaExiste()
+        {
+            var usuarioDuplicado = new CreateUserDto
+            {
+                UserName = "otro_username",
+                Email = _createUser.Email,
+                IdNumber = "12345678901234",
+                FirstName = "Otro",
+                LastName = "Usuario",
+                Password = "Test123*",
+                RoleName = "Administrador"
+            };
+
+            var resultado = await _service.CreateAsync(usuarioDuplicado);
+
+            Assert.That(resultado.Success, Is.False);
+            Assert.That(resultado.ErrorMessage, Does.Contain("correo electrónico").IgnoreCase);
+        }
+
+        [Test]
+        public async Task UserService_CreateAsync_DebeFallarSiLaCedulaYaExiste()
+        {
+            var usuarioDuplicado = new CreateUserDto
+            {
+                UserName = "otro_username",
+                Email = "otro@gmail.com",
+                IdNumber = _createUser.IdNumber,
+                FirstName = "Otro",
+                LastName = "Usuario",
+                Password = "Test123*",
+                RoleName = "Administrador"
+            };
+
+            var resultado = await _service.CreateAsync(usuarioDuplicado);
+
+            Assert.That(resultado.Success, Is.False);
+            Assert.That(resultado.ErrorMessage, Does.Contain("cédula").IgnoreCase);
         }
     }
 }
