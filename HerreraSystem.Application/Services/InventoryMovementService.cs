@@ -38,6 +38,19 @@ namespace HerreraSystem.Application.Services
             _dateTimeService = dateTimeService;
         }
 
+        public async Task<InventoryMovementStatsDto> GetStatsAsync()
+            => await _inventoryMovementRepository.GetStatsAsync();
+
+        public async Task<PagedResponse<InventoryMovementListItemDto>> GetAllAsync(
+            InventoryMovementQueryParams queryParams)
+            => await _inventoryMovementRepository.GetAllAsync(queryParams);
+
+        public async Task<InventoryMovementHeaderDto?> GetByIdAsync(int id)
+            => await _inventoryMovementRepository.GetByIdAsync(id);
+
+        public async Task<IReadOnlyList<InventoryMovementDetailItemDto>> GetDetailsAsync(int id)
+            => await _inventoryMovementRepository.GetDetailsAsync(id);
+
         // ── Transferencia ────────────────────────────────────────────────────
 
         public async Task<ServiceResult<InventoryMovementResultDto>> TransferAsync(
