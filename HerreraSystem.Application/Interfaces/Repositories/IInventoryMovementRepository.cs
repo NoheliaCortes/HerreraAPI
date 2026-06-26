@@ -1,8 +1,6 @@
-﻿using HerreraSystem.Application.DTOs.InventoryMovementDtos;
+using HerreraSystem.Application.Common;
+using HerreraSystem.Application.DTOs.InventoryMovementDtos;
 using HerreraSystem.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace HerreraSystem.Application.Interfaces.Repositories
 {
@@ -10,8 +8,13 @@ namespace HerreraSystem.Application.Interfaces.Repositories
     {
         Task<InventoryMovement> CreateAsync(InventoryMovement movement);
 
-        
+        Task<InventoryMovementStatsDto> GetStatsAsync();
 
+        Task<PagedResponse<InventoryMovementListItemDto>> GetAllAsync(
+            InventoryMovementQueryParams queryParams);
 
+        Task<InventoryMovementHeaderDto?> GetByIdAsync(int id);
+
+        Task<IReadOnlyList<InventoryMovementDetailItemDto>> GetDetailsAsync(int id);
     }
 }

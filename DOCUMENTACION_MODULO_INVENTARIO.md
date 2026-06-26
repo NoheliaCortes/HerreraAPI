@@ -540,6 +540,65 @@ Reglas: lote debe existir; debe existir `BatchLocation`; stock debe ser suficien
 | `Quantity` | `int` | `number` | No |
 | `UnitCost` | `decimal` | `number` | No |
 
+#### `InventoryMovementStatsDto`
+
+| Propiedad | C# | TypeScript | Nullable |
+|---|---:|---:|---:|
+| `MovementsToday` | `int` | `number` | No |
+| `RestocksToday` | `int` | `number` | No |
+| `TransfersToday` | `int` | `number` | No |
+| `PositiveAdjustmentsToday` | `int` | `number` | No |
+| `NegativeAdjustmentsToday` | `int` | `number` | No |
+
+Calcula movimientos del dia actual usando hora local de Nicaragua.
+
+#### `InventoryMovementQueryParams`
+
+Hereda de `PaginationParams`.
+
+| Propiedad | C# | TypeScript | Default |
+|---|---:|---:|---:|
+| `Page` | `int` | `number` | `1` |
+| `PageSize` | `int` | `number` | `10`, maximo `50` |
+
+#### `InventoryMovementListItemDto`
+
+| Propiedad | C# | TypeScript | Nullable |
+|---|---:|---:|---:|
+| `Id` | `int` | `number` | No |
+| `MovementTypeId` | `int` | `number` | No |
+| `MovementTypeName` | `string` | `string` | No |
+| `MovementDate` | `DateTime?` | `string \| null` | Si |
+| `CreatedByUserName` | `string?` | `string \| null` | Si |
+
+#### `InventoryMovementHeaderDto`
+
+| Propiedad | C# | TypeScript | Nullable |
+|---|---:|---:|---:|
+| `Id` | `int` | `number` | No |
+| `MovementTypeId` | `int` | `number` | No |
+| `MovementTypeName` | `string` | `string` | No |
+| `SaleId` | `int?` | `number \| null` | Si |
+| `OrderId` | `int?` | `number \| null` | Si |
+| `MovementDate` | `DateTime?` | `string \| null` | Si |
+| `Notes` | `string?` | `string \| null` | Si |
+| `CreatedByUserName` | `string?` | `string \| null` | Si |
+
+#### `InventoryMovementDetailItemDto`
+
+| Propiedad | C# | TypeScript | Nullable |
+|---|---:|---:|---:|
+| `Id` | `int` | `number` | No |
+| `BatchId` | `int` | `number` | No |
+| `BatchCode` | `string?` | `string \| null` | Si |
+| `SourceLocationName` | `string?` | `string \| null` | Si |
+| `DestinationLocationName` | `string?` | `string \| null` | Si |
+| `Quantity` | `int` | `number` | No |
+| `UnitCost` | `decimal` | `number` | No |
+| `UnitPrice` | `decimal?` | `number \| null` | Si |
+| `CreatedByUserName` | `string?` | `string \| null` | Si |
+| `CreatedAt` | `DateTime?` | `string \| null` | Si |
+
 ### 4.4 Reabastecimientos
 
 #### `CreateRestockBatchDto`
@@ -1170,6 +1229,169 @@ Ejemplo:
 
 ### 5.5 Movimientos de inventario
 
+#### `GET /api/InventoryMovements/stats`
+
+Retorna estadisticas operativas del dia actual para el dashboard de movimientos. La fecha se calcula con hora local de Nicaragua mediante `INicaraguaDateTimeService`.
+
+Autenticacion: no requerida actualmente. Token opcional `Bearer JWT`. Roles: ninguno.
+
+Respuesta:
+
+```ts
+ApiResponse<InventoryMovementStatsDto>
+```
+
+Ejemplo:
+
+```json
+{
+  "success": true,
+  "message": "Operacion exitosa",
+  "data": {
+    "movementsToday": 28,
+    "restocksToday": 8,
+    "transfersToday": 12,
+    "positiveAdjustmentsToday": 5,
+    "negativeAdjustmentsToday": 3
+  }
+}
+```
+
+Tipos contabilizados:
+
+| MovementTypeId | Significado |
+|---:|---|
+| `1` | Reabastecimiento |
+| `1002` | Transferencia |
+| `1003` | Ajuste positivo |
+| `1004` | Ajuste negativo |
+
+#### `GET /api/InventoryMovements`
+
+Retorna la tabla general de movimientos ordenada por `MovementDate` descendente y luego `Id` descendente. No retorna entidades EF.
+
+Autenticacion: no requerida actualmente. Token opcional `Bearer JWT`. Roles: ninguno.
+
+Parametros:
+
+| Nombre | Ubicacion | C# | Requerido | Default |
+|---|---|---:|---:|---:|
+| `page` | Query | `int` | No | `1` |
+| `pageSize` | Query | `int` | No | `10`, maximo `50` |
+
+Respuesta:
+
+```ts
+ApiResponse<PagedResponse<InventoryMovementListItemDto>>
+```
+
+Ejemplo de item:
+
+```json
+{
+  "id": 15,
+  "movementTypeId": 1002,
+  "movementTypeName": "Transferencia",
+  "movementDate": "2026-06-25T09:45:00",
+  "createdByUserName": "admin"
+}
+```
+
+#### `GET /api/InventoryMovements/{id}`
+
+Retorna el encabezado de un movimiento para el drawer de detalles.
+
+Autenticacion: no requerida actualmente. Token opcional `Bearer JWT`. Roles: ninguno.
+
+Parametros:
+
+| Nombre | Ubicacion | C# | Requerido |
+|---|---|---:|---:|
+| `id` | Route | `int` | Si |
+
+Respuesta:
+
+```ts
+ApiResponse<InventoryMovementHeaderDto>
+```
+
+Ejemplo:
+
+```json
+{
+  "success": true,
+  "message": "Operacion exitosa",
+  "data": {
+    "id": 15,
+    "movementTypeId": 1002,
+    "movementTypeName": "Transferencia",
+    "saleId": null,
+    "orderId": null,
+    "movementDate": "2026-06-25T09:45:00",
+    "notes": "Traslado a mostrador",
+    "createdByUserName": "admin"
+  }
+}
+```
+
+Errores:
+
+- `404 Not Found` si no existe el movimiento: `ApiResponse<InventoryMovementHeaderDto>.Fail(message)`.
+
+#### `GET /api/InventoryMovements/{id}/details`
+
+Retorna los detalles de lotes, ubicaciones y cantidades asociadas al movimiento.
+
+Autenticacion: no requerida actualmente. Token opcional `Bearer JWT`. Roles: ninguno.
+
+Parametros:
+
+| Nombre | Ubicacion | C# | Requerido |
+|---|---|---:|---:|
+| `id` | Route | `int` | Si |
+
+Respuesta:
+
+```ts
+ApiResponse<IReadOnlyList<InventoryMovementDetailItemDto>>
+```
+
+Ejemplo:
+
+```json
+{
+  "success": true,
+  "message": "Operacion exitosa",
+  "data": [
+    {
+      "id": 1,
+      "batchId": 25,
+      "batchCode": "PRE-FRE-LIT-2026-001",
+      "sourceLocationName": "Bodega",
+      "destinationLocationName": "Mostrador",
+      "quantity": 15,
+      "unitCost": 35,
+      "unitPrice": null,
+      "createdByUserName": "admin",
+      "createdAt": "2026-06-25T09:45:00"
+    }
+  ]
+}
+```
+
+Errores:
+
+- `404 Not Found` si no existe el movimiento: `ApiResponse<List<InventoryMovementDetailItemDto>>.Fail(message)`.
+
+Casos especiales por tipo de movimiento:
+
+- Reabastecimiento (`MovementTypeId = 1`): normalmente representa ingreso hacia Bodega; puede no tener ubicacion origen.
+- Venta: normalmente representa salida de inventario; puede no tener ubicacion destino.
+- Transferencia (`MovementTypeId = 1002`): normalmente tiene ubicacion origen y ubicacion destino.
+- Ajuste positivo (`MovementTypeId = 1003`): normalmente no tiene origen y usa destino como ubicacion donde aparece el stock.
+- Ajuste negativo (`MovementTypeId = 1004`): normalmente tiene origen y no tiene destino.
+- El frontend debe tratar `sourceLocationName`, `destinationLocationName`, `saleId`, `orderId`, `unitPrice`, `movementDate` y `createdAt` como valores opcionales.
+
 #### `POST /api/InventoryMovements/transfer`
 
 Autenticacion: no requerida actualmente. Token opcional `Bearer JWT`. Roles: ninguno.
@@ -1483,6 +1705,46 @@ export interface CreateNegativeAdjustmentDto {
   createdBy: number;
   details: AdjustmentDetailDto[];
 }
+
+export interface InventoryMovementStatsDto {
+  movementsToday: number;
+  restocksToday: number;
+  transfersToday: number;
+  positiveAdjustmentsToday: number;
+  negativeAdjustmentsToday: number;
+}
+
+export interface InventoryMovementListItemDto {
+  id: number;
+  movementTypeId: number;
+  movementTypeName: string;
+  movementDate?: string | null;
+  createdByUserName?: string | null;
+}
+
+export interface InventoryMovementHeaderDto {
+  id: number;
+  movementTypeId: number;
+  movementTypeName: string;
+  saleId?: number | null;
+  orderId?: number | null;
+  movementDate?: string | null;
+  notes?: string | null;
+  createdByUserName?: string | null;
+}
+
+export interface InventoryMovementDetailItemDto {
+  id: number;
+  batchId: number;
+  batchCode?: string | null;
+  sourceLocationName?: string | null;
+  destinationLocationName?: string | null;
+  quantity: number;
+  unitCost: number;
+  unitPrice?: number | null;
+  createdByUserName?: string | null;
+  createdAt?: string | null;
+}
 ```
 
 ## 7. Flujos Front-end Recomendados
@@ -1560,6 +1822,19 @@ Secciones sugeridas:
 3. Mostrar `restockCode`, `inventoryMovementId` y lista de `batches`.
 
 ### 7.4 Pantalla de movimientos
+
+Dashboard y tabla:
+
+1. Llamar `GET /api/InventoryMovements/stats` al cargar el modulo para cards de movimientos del dia.
+2. Llamar `GET /api/InventoryMovements?page=1&pageSize=10` para llenar la tabla general.
+3. Usar `data.data` como filas y `currentPage`, `pageSize`, `totalRecords`, `totalPages`, `hasNextPage`, `hasPreviousPage` para paginacion.
+4. Orden esperado: movimientos mas recientes primero.
+
+Drawer de detalle:
+
+1. Al seleccionar una fila, llamar `GET /api/InventoryMovements/{id}` para el encabezado.
+2. Llamar `GET /api/InventoryMovements/{id}/details` para los lotes y ubicaciones.
+3. Si `sourceLocationName`, `destinationLocationName`, `saleId`, `orderId`, `unitPrice`, `movementDate` o `createdAt` vienen `null`, mostrar "No aplica" o dejar el campo vacio segun UX.
 
 Transferencia:
 
