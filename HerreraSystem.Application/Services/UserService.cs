@@ -60,7 +60,7 @@ public class UserService : IUserService
     {
         var existingUser = await _userRepo.GetByUserNameAsync(dto.UserName);
         if (existingUser != null)
-            return ServiceResult<string>.Fail("El usuario ya existe.");
+            return ServiceResult<string>.Fail("Ya existe un usuario con este nombre de usuario.");
 
         var existingEmail = await _userRepo.GetByEmailAsync(dto.Email);
         if (existingEmail != null)
@@ -69,6 +69,15 @@ public class UserService : IUserService
         var existingId = await _userRepo.GetByIdNumberAsync(dto.IdNumber);
         if (existingId != null)
             return ServiceResult<string>.Fail("Ya existe un usuario con esta cédula.");
+
+        // Validar que se haya enviado un rol
+        if (string.IsNullOrWhiteSpace(dto.RoleName))
+            return ServiceResult<string>.Fail("Debe seleccionar un rol.");
+
+        // Validar que el rol exista
+        var role = await _userRepo.GetRoleByNameAsync(dto.RoleName);
+        if (role == null)
+            return ServiceResult<string>.Fail("El rol seleccionado no existe.");
 
         var user = new User
         {
@@ -82,17 +91,14 @@ public class UserService : IUserService
             CreatedAt = DateTime.UtcNow
         };
 
-        var role = await _userRepo.GetRoleByNameAsync(dto.RoleName);
-        if (role != null)
+        user.UserRoles.Add(new UserRole
         {
-            user.UserRoles.Add(new UserRole
-            {
-                RoleId = role.Id,
-                AssignedAt = DateTime.UtcNow
-            });
-        }
+            RoleId = role.Id,
+            AssignedAt = DateTime.UtcNow
+        });
 
         await _userRepo.AddAsync(user);
+
         return ServiceResult<string>.Ok("Usuario creado exitosamente.");
     }
 
