@@ -86,7 +86,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPatch("{id}/reset-password")]
-    [Authorize(Roles = "Administrador, Admin")]
+    
     public async Task<IActionResult> ResetPassword(int id, [FromBody] ResetPasswordDto dto)
     {
         if (id != dto.UserId)
