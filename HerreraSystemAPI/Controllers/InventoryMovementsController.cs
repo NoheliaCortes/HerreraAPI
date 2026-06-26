@@ -1,7 +1,6 @@
 ﻿using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.InventoryMovementDtos;
 using HerreraSystem.Application.Interfaces.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HerreraSystem.API.Controllers
@@ -15,6 +14,50 @@ namespace HerreraSystem.API.Controllers
         public InventoryMovementsController(IInventoryMovementService movementService)
         {
             _movementService = movementService;
+        }
+
+        [HttpGet("stats")]
+        public async Task<IActionResult> GetStats()
+        {
+            var data = await _movementService.GetStatsAsync();
+
+            return Ok(ApiResponse<InventoryMovementStatsDto>.Ok(data));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] InventoryMovementQueryParams queryParams)
+        {
+            var data = await _movementService.GetAllAsync(queryParams);
+
+            return Ok(ApiResponse<PagedResponse<InventoryMovementListItemDto>>.Ok(data));
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var data = await _movementService.GetByIdAsync(id);
+
+            if (data is null)
+                return NotFound(
+                    ApiResponse<InventoryMovementHeaderDto>.Fail(
+                        $"Movimiento de inventario con Id {id} no encontrado"));
+
+            return Ok(ApiResponse<InventoryMovementHeaderDto>.Ok(data));
+        }
+
+        [HttpGet("{id}/details")]
+        public async Task<IActionResult> GetDetails(int id)
+        {
+            var movement = await _movementService.GetByIdAsync(id);
+
+            if (movement is null)
+                return NotFound(
+                    ApiResponse<List<InventoryMovementDetailItemDto>>.Fail(
+                        $"Movimiento de inventario con Id {id} no encontrado"));
+
+            var data = await _movementService.GetDetailsAsync(id);
+
+            return Ok(ApiResponse<IReadOnlyList<InventoryMovementDetailItemDto>>.Ok(data));
         }
 
         [HttpPost("transfer")]

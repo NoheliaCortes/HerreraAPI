@@ -1,13 +1,19 @@
-﻿using HerreraSystem.Application.Common;
+using HerreraSystem.Application.Common;
 using HerreraSystem.Application.DTOs.InventoryMovementDtos;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace HerreraSystem.Application.Interfaces.Services
 {
     public interface IInventoryMovementService
     {
+        Task<InventoryMovementStatsDto> GetStatsAsync();
+
+        Task<PagedResponse<InventoryMovementListItemDto>> GetAllAsync(
+            InventoryMovementQueryParams queryParams);
+
+        Task<InventoryMovementHeaderDto?> GetByIdAsync(int id);
+
+        Task<IReadOnlyList<InventoryMovementDetailItemDto>> GetDetailsAsync(int id);
+
         Task<ServiceResult<InventoryMovementResultDto>> TransferAsync(
             CreateTransferDto dto);
 
