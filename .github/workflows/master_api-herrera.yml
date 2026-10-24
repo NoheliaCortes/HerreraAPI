@@ -24,19 +24,19 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Restore dependencies
-        run: dotnet restore HerreraSystemAPI/HerreraSystemAPI.csproj
+        run: dotnet restore
 
-      - name: Build with dotnet
-        run: dotnet build HerreraSystemAPI/HerreraSystemAPI.csproj --configuration Release --no-restore
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
 
-      - name: dotnet publish
-        run: dotnet publish HerreraSystemAPI/HerreraSystemAPI.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp --no-build
+      - name: Publish API project
+        run: dotnet publish HerreraSystemAPI/HerreraSystemAPI.csproj -c Release -o ./publish --no-build
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ./publish
 
   deploy:
     runs-on: windows-latest
