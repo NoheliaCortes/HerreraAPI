@@ -14,6 +14,8 @@ using Microsoft.OpenApi;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configuración de JWT
 var Jwt = builder.Configuration.GetSection("Jwt");
 var Key = Jwt["Key"];
 
@@ -36,7 +38,6 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddEndpointsApiExplorer();
-
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -79,22 +80,21 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 
+// Base de Datos
 builder.Services.AddDbContext<HerreraSystemContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Inyección de Dependencias
 builder.Services.AddScoped<IFlavorRepository, FlavorRepository>();
 builder.Services.AddScoped<IFlavorService, FlavorService>();
 builder.Services.AddScoped<IFlavorImageService, FlavorImageService>();
-
 builder.Services.AddScoped<ILineRepository, LineRepository>();
 builder.Services.AddScoped<IPresentationRepository, PresentationRepository>();
 builder.Services.AddScoped<ILinePresentationRepository, LinePresentationRepository>();
 builder.Services.AddScoped<ILineService, LineService>();
 builder.Services.AddScoped<IPresentationService, PresentationService>();
-
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
-
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IProductImageService, ProductImageService>();
@@ -123,12 +123,12 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddSingleton<INicaraguaDateTimeService, NicaraguaDateTimeService>();
-
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IMunicipalityRepository, MunicipalityRepository>();
 builder.Services.AddScoped<IMunicipalityService, MunicipalityService>();
 
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirFrontend", policy =>
@@ -143,22 +143,26 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
+// Creación de carpetas de almacenamiento de imágenes
 var webRootPath = app.Environment.WebRootPath
                   ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
-
 Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "products"));
 Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "flavors"));
 
-if (app.Environment.IsDevelopment())
+// Swagger habilitado siempre (Desarrollo y Producción)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "HerreraSystem API v1");
+    c.RoutePrefix = string.Empty; // Carga Swagger directamente al abrir el sitio raíz
+});
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseCors("PermitirFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();
