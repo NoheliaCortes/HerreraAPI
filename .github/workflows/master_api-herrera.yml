@@ -28,10 +28,10 @@ jobs:
         run: dotnet restore
 
       - name: Build solution
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build --configuration Release
 
       - name: Publish API project
-        run: dotnet publish HerreraSystemAPI/HerreraSystem.API.csproj -c Release -o ./publish --no-build
+        run: dotnet publish HerreraSystemAPI/HerreraSystem.API.csproj -c Release -o ./publish
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
