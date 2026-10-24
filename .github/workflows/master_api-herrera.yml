@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: read # Required for actions/checkout
+      contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -21,30 +21,26 @@ jobs:
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
-          include-prerelease: true
+          dotnet-version: '10.x'
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
 
-      - name: Build solution
-        run: dotnet build --configuration Release --no-restore
-
-      - name: Publish API project
-        run: dotnet publish HerreraSystemAPI/HerreraSystemAPI.csproj -c Release -o ./publish --no-build
+      - name: dotnet publish
+        run: dotnet publish HerreraSystemAPI/HerreraSystemAPI.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ./publish
+          path: ${{env.DOTNET_ROOT}}/myapp
 
   deploy:
     runs-on: windows-latest
     needs: build
     permissions:
-      id-token: write # Required for requesting the JWT
-      contents: read # Required for actions/checkout
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
     steps:
       - name: Download artifact from build job
