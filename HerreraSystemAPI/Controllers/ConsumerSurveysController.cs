@@ -14,6 +14,21 @@ public sealed class ConsumerSurveysController : ControllerBase
     public ConsumerSurveysController(IConsumerSurveyService consumerSurveyService)
         => _consumerSurveyService = consumerSurveyService;
 
+    [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponse<ConsumerSurveyReviewDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> GetReviews(
+        [FromQuery] ConsumerSurveyQueryParams query,
+        CancellationToken cancellationToken)
+    {
+        var result = await _consumerSurveyService.GetReviewsAsync(query, cancellationToken);
+        if (!result.Success)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                ApiResponse<object>.Fail(result.ErrorMessage ?? "No fue posible obtener las reseñas."));
+
+        return Ok(ApiResponse<PagedResponse<ConsumerSurveyReviewDto>>.Ok(result.Data!));
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<List<string>>), StatusCodes.Status400BadRequest)]

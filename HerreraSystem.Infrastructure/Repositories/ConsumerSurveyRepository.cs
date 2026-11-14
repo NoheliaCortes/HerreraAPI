@@ -45,4 +45,66 @@ public sealed class ConsumerSurveyRepository : IConsumerSurveyRepository
             throw new ConsumerSurveyStorageException(ex);
         }
     }
+
+    public async Task<PagedResponse<ConsumerSurveyRecord>> GetPagedAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var collection = _collectionProvider.Collection;
+            var filter = Builders<ConsumerSurveyDocument>.Filter.Empty;
+            var totalCount = await collection.CountDocumentsAsync(
+                filter,
+                cancellationToken: cancellationToken);
+
+            var totalPagesLong = totalCount == 0
+                ? 0
+                : (totalCount + pageSize - 1) / pageSize;
+            var totalPages = (int)Math.Min(totalPagesLong, int.MaxValue);
+            var skipLong = ((long)page - 1) * pageSize;
+            var documents = skipLong > int.MaxValue || totalCount == 0
+                ? new List<ConsumerSurveyDocument>()
+                : await collection.Find(filter)
+                    .Sort(Builders<ConsumerSurveyDocument>.Sort
+                        .Descending(document => document.SurveyDate)
+                        .Descending("_id"))
+                    .Skip((int)skipLong)
+                    .Limit(pageSize)
+                    .ToListAsync(cancellationToken);
+
+            return new PagedResponse<ConsumerSurveyRecord>
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalRecords = (int)Math.Min(totalCount, int.MaxValue),
+                TotalPages = totalPages,
+                Data = documents.Select(document => new ConsumerSurveyRecord
+                {
+                    ReviewerName = document.ReviewerName,
+                    ProductName = document.ProductName,
+                    Line = document.Line,
+                    Flavor = document.Flavor,
+                    Presentation = document.Presentation,
+                    Municipality = document.Municipality,
+                    Department = document.Department,
+                    Rating = document.Rating,
+                    WouldRecommend = document.WouldRecommend,
+                    Sentiment = document.Sentiment,
+                    Comment = document.Comment,
+                    SurveyDate = document.SurveyDate,
+                    Channel = document.Channel
+                }).ToList()
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ConsumerSurveyStorageException(ex);
+        }
+    }
 }

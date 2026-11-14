@@ -54,4 +54,47 @@ public sealed class ConsumerSurveyService : IConsumerSurveyService
             return ServiceResult<bool>.Fail("No fue posible registrar la encuesta en este momento.");
         }
     }
+
+    public async Task<ServiceResult<PagedResponse<ConsumerSurveyReviewDto>>> GetReviewsAsync(
+        ConsumerSurveyQueryParams query,
+        CancellationToken cancellationToken = default)
+    {
+        var page = Math.Max(1, query.Page);
+        var pageSize = Math.Clamp(query.PageSize, 1, 50);
+
+        try
+        {
+            var result = await _repository.GetPagedAsync(page, pageSize, cancellationToken);
+            var response = new PagedResponse<ConsumerSurveyReviewDto>
+            {
+                CurrentPage = result.CurrentPage,
+                PageSize = result.PageSize,
+                TotalRecords = result.TotalRecords,
+                TotalPages = result.TotalPages,
+                Data = result.Data.Select(survey => new ConsumerSurveyReviewDto
+                {
+                    ReviewerName = survey.ReviewerName,
+                    ProductName = survey.ProductName,
+                    Line = survey.Line,
+                    Flavor = survey.Flavor,
+                    Presentation = survey.Presentation,
+                    Municipality = survey.Municipality,
+                    Department = survey.Department,
+                    Rating = survey.Rating,
+                    WouldRecommend = survey.WouldRecommend,
+                    Sentiment = survey.Sentiment,
+                    Comment = survey.Comment,
+                    SurveyDate = survey.SurveyDate,
+                    Channel = survey.Channel
+                }).ToList()
+            };
+
+            return ServiceResult<PagedResponse<ConsumerSurveyReviewDto>>.Ok(response);
+        }
+        catch (ConsumerSurveyStorageException)
+        {
+            return ServiceResult<PagedResponse<ConsumerSurveyReviewDto>>.Fail(
+                "No fue posible obtener las reseñas en este momento.");
+        }
+    }
 }

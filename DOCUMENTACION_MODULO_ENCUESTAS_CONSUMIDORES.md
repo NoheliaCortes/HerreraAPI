@@ -6,6 +6,48 @@
 
 El endpoint guarda encuestas en MongoDB Atlas, base `HerreraAnalytics`, colección `consumer_surveys`. No modifica operaciones de ventas ni tablas de SQL Server.
 
+## Obtener reseñas
+
+`GET /api/consumer-surveys?page=1&pageSize=10`
+
+Devuelve las reseñas más recientes primero, paginadas. `page` inicia en `1`; `pageSize` inicia en `10` y tiene máximo de `50`. La respuesta conserva los nombres de campos camelCase, agrega la información de paginación del API y omite el `_id` interno de MongoDB.
+
+Respuesta de ejemplo:
+
+```json
+{
+  "success": true,
+  "message": "Operación exitosa",
+  "data": {
+    "data": [
+      {
+        "reviewerName": "María López",
+        "productName": "Sorbete de chocolate",
+        "line": "Tradicionales",
+        "flavor": "Chocolate",
+        "presentation": "Vaso grande",
+        "municipality": "Jinotepe",
+        "department": "Carazo",
+        "rating": 5,
+        "wouldRecommend": true,
+        "sentiment": "Muy satisfecho",
+        "comment": "Excelente sabor y textura",
+        "surveyDate": "2026-11-13",
+        "channel": "Formulario web"
+      }
+    ],
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalRecords": 1,
+    "totalPages": 1,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  }
+}
+```
+
+Si MongoDB no está disponible, devuelve `503 Service Unavailable` sin exponer detalles internos.
+
 ## Configuración local
 
 Configura el secreto fuera de Git. En PowerShell, para la sesión actual:

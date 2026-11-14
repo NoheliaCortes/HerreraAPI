@@ -6,4 +6,7 @@ namespace HerreraSystem.Application.Interfaces.Services;
 public interface IConsumerSurveyService
 {
     Task<ServiceResult<bool>> RegisterAsync(CreateConsumerSurveyDto dto, CancellationToken cancellationToken = default);
+    Task<ServiceResult<PagedResponse<ConsumerSurveyReviewDto>>> GetReviewsAsync(
+        ConsumerSurveyQueryParams query,
+        CancellationToken cancellationToken = default);
 }
