@@ -7,6 +7,8 @@ using HerreraSystem.API.Services;
 using HerreraSystem.Infrastructure.Data;
 using HerreraSystem.Infrastructure.Persistence;
 using HerreraSystem.Infrastructure.Repositories;
+using HerreraSystem.Infrastructure.MongoDB;
+using HerreraSystem.Infrastructure.MongoDB.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -129,6 +131,10 @@ builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IMunicipalityRepository, MunicipalityRepository>();
 builder.Services.AddScoped<IMunicipalityService, MunicipalityService>();
+builder.Services.Configure<MongoDBSettings>(builder.Configuration.GetSection("MongoDB"));
+builder.Services.AddSingleton<ConsumerSurveyCollectionProvider>();
+builder.Services.AddScoped<IConsumerSurveyRepository, ConsumerSurveyRepository>();
+builder.Services.AddScoped<IConsumerSurveyService, ConsumerSurveyService>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -138,6 +144,20 @@ builder.Services.AddCors(options =>
         policy.AllowAnyOrigin()
               .AllowAnyMethod()
               .AllowAnyHeader();
+    });
+
+    var consumerSurveyOrigins = builder.Configuration
+        .GetSection("Cors:ConsumerSurveyOrigins")
+        .Get<string[]>() ?? Array.Empty<string>();
+
+    options.AddPolicy("ConsumerSurveyForm", policy =>
+    {
+        if (consumerSurveyOrigins.Length > 0)
+            policy.WithOrigins(consumerSurveyOrigins);
+        else
+            policy.SetIsOriginAllowed(_ => false);
+
+        policy.AllowAnyMethod().AllowAnyHeader();
     });
 });
 
@@ -161,7 +181,12 @@ app.UseSwaggerUI(c =>
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseCors("PermitirFrontend");
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/api/consumer-surveys"),
+    branch => branch.UseCors("ConsumerSurveyForm"));
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api/consumer-surveys"),
+    branch => branch.UseCors("PermitirFrontend"));
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -7,11 +7,13 @@ namespace HerreraSystem.API.Middleware
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly ILogger<ExceptionMiddleware> _logger;
   
 
-        public ExceptionMiddleware(RequestDelegate next)
+        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
         {
             _next = next;
+            _logger = logger;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -23,12 +25,18 @@ namespace HerreraSystem.API.Middleware
             }
             catch (Exception ex)
             {
-                
-                
+                _logger.LogError(
+                    "Unhandled exception {ExceptionType} for {RequestMethod} {RequestPath}. Stack: {StackTrace}",
+                    ex.GetType().Name,
+                    context.Request.Method,
+                    context.Request.Path,
+                    ex.StackTrace);
+
+                context.Response.Clear();
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 context.Response.ContentType = "application/json";
 
-                var response = ApiResponse<object>.Fail($"Error interno del servidor: {ex.Message}");
+                var response = ApiResponse<object>.Fail("Error interno del servidor.");
                 await context.Response.WriteAsync(JsonSerializer.Serialize(response));
             }
         }
